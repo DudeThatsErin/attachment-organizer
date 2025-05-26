@@ -161,28 +161,41 @@ class AttachmentOrganizerPlugin extends Plugin {
         return files;
     }
     
-    async moveAttachments(files, destinationFolder) {
+    async moveAttachments(sourceFolder, destinationFolder, files) {
         const { vault } = this.app;
+        const fileManager = this.app.fileManager;
         const movedFiles = [];
         const errors = [];
         
-        // Ensure destination folder exists
-        await this.ensureFolderExists(destinationFolder);
+        // Create destination folder if it doesn't exist
+        if (!(await this.app.vault.adapter.exists(destinationFolder))) {
+            await this.app.vault.createFolder(destinationFolder);
+        }
         
-        // Move each file
         for (const file of files) {
             try {
-                const newPath = `${destinationFolder}/${file.name}`;
-                await vault.rename(file, newPath);
+                const currentPath = file.path;
+                const fileName = currentPath.split('/').pop();
+                const newPath = `${destinationFolder}/${fileName}`;
+                
+                // Get TFile objects for more reliable moving
+                const currentFile = this.app.vault.getAbstractFileByPath(currentPath);
+                if (!currentFile || !(currentFile instanceof this.app.vault.config.TFile)) {
+                    throw new Error(`File not found: ${currentPath}`);
+                }
+                
+                // Move the file using Obsidian's API
+                await vault.rename(currentFile, newPath);
+                
                 movedFiles.push({
-                    oldPath: file.path,
+                    oldPath: currentPath,
                     newPath: newPath
                 });
             } catch (error) {
                 console.error(`Error moving file ${file.path}:`, error);
                 errors.push({
                     file: file.path,
-                    error: error.message
+                    error: error.message || 'Unknown error'
                 });
             }
         }

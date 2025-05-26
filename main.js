@@ -1,5 +1,12 @@
 const { Plugin, Notice, Modal, Setting, PluginSettingTab, TFile, normalizePath } = require('obsidian');
 
+const DEFAULT_SETTINGS = {
+    attachmentFolder: 'attachments',
+    attachmentExtensions: 'png,jpg,jpeg,gif,bmp,svg,mp3,wav,mp4,mov,pdf',
+    confirmPurge: true,
+    ignoreFolders: ''
+};
+
 class AttachmentOrganizerPlugin extends Plugin {
     async onload() {
         console.log('Loading Attachment Organizer plugin');
@@ -30,7 +37,7 @@ class AttachmentOrganizerPlugin extends Plugin {
         });
         
         this.addCommand({
-            id: 'move-attachments',
+            id: 'move-attachments-between-folders',
             name: 'Move Attachments Between Folders',
             callback: () => this.moveAttachmentsBetweenFolders()
         });
@@ -180,7 +187,7 @@ class AttachmentOrganizerPlugin extends Plugin {
                 
                 // Get TFile objects for more reliable moving
                 const currentFile = this.app.vault.getAbstractFileByPath(currentPath);
-                if (!currentFile || !(currentFile instanceof this.app.vault.config.TFile)) {
+                if (!currentFile || !(currentFile instanceof TFile)) {
                     throw new Error(`File not found: ${currentPath}`);
                 }
                 
@@ -351,36 +358,54 @@ class AttachmentOrganizerPlugin extends Plugin {
             
             // Check for HTML style links: <a href="file.pdf">...
             const htmlLinkRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>/g;
+            // Add safety check for large files
+            if (content.length > 1000000) { // Skip files larger than ~1MB
+                console.log(`Skipping large file (${content.length} bytes): ${file.path}`);
+                return;
+            }
+            
+            // Safer regex processing with iteration limits
+            const MAX_ITERATIONS = 10000;
+            
+            // Process HTML links with iteration limit
             let match;
-            while ((match = htmlLinkRegex.exec(content)) !== null) {
+            let iterations = 0;
+            while ((match = htmlLinkRegex.exec(content)) !== null && iterations < MAX_ITERATIONS) {
+                iterations++;
                 this.addToLinksMap(linksMap, match[1], file.path);
+            }
+            if (iterations >= MAX_ITERATIONS) {
+                console.warn(`Reached iteration limit for HTML links in file: ${file.path}`);
             }
             
             // Check for Markdown links: [text](file.pdf)
             const markdownLinkRegex = /\[(?:[^\[\]]*?)\]\(([^\)]+?)\)/g;
-            while ((match = markdownLinkRegex.exec(content)) !== null) {
+            iterations = 0;
+            while ((match = markdownLinkRegex.exec(content)) !== null && iterations < MAX_ITERATIONS) {
+                iterations++;
                 this.addToLinksMap(linksMap, match[1], file.path);
+            }
+            if (iterations >= MAX_ITERATIONS) {
+                console.warn(`Reached iteration limit for Markdown links in file: ${file.path}`);
             }
             
             // Check for direct URL references that might be attachments
             const urlRegex = /https?:\/\/[^\s"'<>()\[\]]+\.(pdf|jpe?g|png|gif|svg|mp[34]|wav)/g;
-            while ((match = urlRegex.exec(content)) !== null) {
+            iterations = 0;
+            while ((match = urlRegex.exec(content)) !== null && iterations < MAX_ITERATIONS) {
+                iterations++;
                 // Extract filename from URL
                 const fileName = match[0].split('/').pop();
                 this.addToLinksMap(linksMap, fileName, file.path);
+            }
+            if (iterations >= MAX_ITERATIONS) {
+                console.warn(`Reached iteration limit for URL regex in file: ${file.path}`);
             }
         } catch (err) {
             console.error(`Error checking file content for links in ${file.path}:`, err);
         }
     }
 }
-
-const DEFAULT_SETTINGS = {
-    attachmentFolder: 'attachments',
-    attachmentExtensions: 'png,jpg,jpeg,gif,bmp,svg,mp3,wav,mp4,mov,pdf',
-    confirmPurge: true,
-    ignoreFolders: ''
-};
 
 class AttachmentOrganizerSettingTab extends PluginSettingTab {
     constructor(app, plugin) {
@@ -615,16 +640,79 @@ class PurgeConfirmationModal extends Modal {
     
     onOpen() {
         const {contentEl} = this;
-        
-        // Make the modal container responsive
+        contentEl.empty();
         contentEl.addClass('attachment-organizer-modal');
         
-        // Header section
-        const headerEl = contentEl.createDiv({cls: 'attachment-organizer-modal-header'});
+        // Create header
+        const headerEl = contentEl.createDiv('attachment-organizer-modal-header');
         headerEl.createEl('h2', {text: 'Confirm Purge'});
+        
+        // Description
+        headerEl.createEl('p', {
+            text: `The following ${this.unlinkedFiles.length} unlinked attachments will be permanently deleted.`,
+            cls: 'attachment-organizer-description'
+        });
+        
+        // File list container
+        const fileListEl = contentEl.createDiv('attachment-organizer-file-list');
+        
+        // Create file list
+        this.unlinkedFiles.forEach(file => {
+            // Get parent folder to track potential empty folders
+            const folderPath = file.parent?.path || '';
+            if (folderPath) this.affectedFolders.add(folderPath);
+            
+            const fileItemEl = fileListEl.createDiv('attachment-organizer-file-item');
+            fileItemEl.createDiv('attachment-organizer-file-path', {text: file.path});
+        });
+        
+        // Warning about empty folders
+        if (this.plugin.settings.deleteEmptyFolders && this.affectedFolders.size > 0) {
+            const warningEl = contentEl.createDiv('attachment-organizer-warning');
+            warningEl.createEl('p', {
+                text: 'The following folders may become empty and will be deleted:',
+                cls: 'attachment-organizer-warning-text'
+            });
+            
+            const folderListEl = warningEl.createDiv('attachment-organizer-folder-list');
+            Array.from(this.affectedFolders).forEach(folder => {
+                folderListEl.createDiv('attachment-organizer-folder-item', {text: folder});
+            });
+        }
+        
+        // Create buttons
+        const buttonContainer = contentEl.createDiv('attachment-organizer-action-buttons');
+        
+        const cancelButton = buttonContainer.createEl('button', {
+            text: 'Cancel',
+            cls: 'attachment-organizer-button'
+        });
+        cancelButton.addEventListener('click', () => this.close());
+        
+        const deleteButton = buttonContainer.createEl('button', {
+            text: 'Delete Files',
+            cls: 'attachment-organizer-button attachment-organizer-button-warning'
+        });
+        deleteButton.addEventListener('click', () => this.deleteFiles());
+    }
+    
+    async deleteFiles() {
+        try {
+            await this.plugin.purgeUnlinkedAttachments(this.unlinkedFiles);
+            this.close();
+        } catch (error) {
+            console.error('Error deleting files:', error);
+            new Notice('Error deleting files: ' + error.message);
+        }
+    }
+    
+    onClose() {
+        const {contentEl} = this;
+        contentEl.empty();
     }
 }
-
+    
+// Add the MoveAttachmentsModal class
 class MoveAttachmentsModal extends Modal {
     constructor(app, plugin) {
         super(app);
@@ -632,6 +720,7 @@ class MoveAttachmentsModal extends Modal {
         this.sourceFolder = '';
         this.destinationFolder = '';
         this.files = [];
+        this.loading = false;
     }
     
     onOpen() {
@@ -657,7 +746,7 @@ class MoveAttachmentsModal extends Modal {
         });
         sourceFolderInput.value = this.sourceFolder;
         sourceFolderInput.addEventListener('input', () => {
-            this.sourceFolder = sourceFolderInput.value;
+            this.sourceFolder = sourceFolderInput.value.trim();
         });
         
         // Destination folder input
@@ -671,8 +760,11 @@ class MoveAttachmentsModal extends Modal {
         });
         destFolderInput.value = this.destinationFolder;
         destFolderInput.addEventListener('input', () => {
-            this.destinationFolder = destFolderInput.value;
+            this.destinationFolder = destFolderInput.value.trim();
         });
+        
+        // Status message area
+        this.statusEl = folderSelectionEl.createDiv('attachment-organizer-status-message');
         
         // Create button section
         const buttonContainer = contentEl.createDiv('attachment-organizer-action-buttons');
@@ -685,45 +777,72 @@ class MoveAttachmentsModal extends Modal {
         
         const findButton = buttonContainer.createEl('button', {
             text: 'Find Files',
-            cls: 'attachment-organizer-button'
+            cls: 'attachment-organizer-button attachment-organizer-button-cta'
         });
-        findButton.addEventListener('click', () => this.findFiles());
+        findButton.addEventListener('click', async () => {
+            await this.findFiles(findButton);
+        });
+        
+        // Focus source input
+        setTimeout(() => sourceFolderInput.focus(), 50);
     }
     
-    async findFiles() {
+    showStatus(message, type = 'info') {
+        if (!this.statusEl) return;
+        
+        this.statusEl.empty();
+        this.statusEl.setText(message);
+        
+        // Remove previous status classes
+        this.statusEl.removeClass('status-info', 'status-error', 'status-success', 'status-warning');
+        // Add the new status class
+        this.statusEl.addClass(`status-${type}`);
+    }
+    
+    async findFiles(findButton) {
+        if (this.loading) return;
+        
         if (!this.sourceFolder) {
-            new Notice('Please enter a source folder path');
-            return;
-        }
-        
-        if (!this.destinationFolder) {
-            new Notice('Please enter a destination folder path');
-            return;
-        }
-        
-        if (this.sourceFolder === this.destinationFolder) {
-            new Notice('Source and destination folders must be different');
+            this.showStatus('Please enter a source folder path', 'error');
             return;
         }
         
         // Normalize paths
-        this.sourceFolder = normalizePath(this.sourceFolder);
-        this.destinationFolder = normalizePath(this.destinationFolder);
+        const sourceFolder = normalizePath(this.sourceFolder);
+        
+        // Show loading state
+        this.loading = true;
+        findButton.setText('Finding files...');
+        this.showStatus('Searching for attachments...', 'info');
         
         try {
-            // Get files in source folder
-            this.files = await this.plugin.getAttachmentsInFolder(this.sourceFolder);
-            
-            if (this.files.length === 0) {
-                new Notice(`No attachments found in folder: ${this.sourceFolder}`);
+            // Check if folder exists
+            if (!(await this.app.vault.adapter.exists(sourceFolder))) {
+                this.showStatus(`Source folder "${sourceFolder}" does not exist`, 'error');
                 return;
             }
+            
+            // Get files in source folder
+            const files = await this.plugin.getAttachmentsInFolder(sourceFolder);
+            
+            if (files.length === 0) {
+                this.showStatus(`No attachments found in folder: ${sourceFolder}`, 'warning');
+                return;
+            }
+            
+            // Store for confirmation
+            this.files = files;
+            this.sourceFolder = sourceFolder;
             
             // Show confirmation modal
             this.showConfirmation();
         } catch (err) {
-            new Notice(`Error finding files: ${err}`);
+            this.showStatus(`Error finding files: ${err.message || err}`, 'error');
             console.error('Error finding files:', err);
+        } finally {
+            // Reset loading state
+            this.loading = false;
+            findButton.setText('Find Files');
         }
     }
     
@@ -735,120 +854,132 @@ class MoveAttachmentsModal extends Modal {
         // Create header
         const headerEl = contentEl.createDiv('attachment-organizer-modal-header');
         headerEl.createEl('h2', { text: 'Confirm Move' });
-        headerEl.createDiv('attachment-organizer-info-text', { 
-            text: `Moving ${this.files.length} files from ${this.sourceFolder} to ${this.destinationFolder}` 
+        
+        // Create destination folder input if not already set
+        const folderSection = contentEl.createDiv('attachment-organizer-folder-section');
+        
+        // Show move details
+        folderSection.createEl('p', { 
+            text: `Moving ${this.files.length} files from "${this.sourceFolder}"` 
         });
+        
+        // Destination folder input
+        folderSection.createEl('h3', { text: 'Destination Folder:', cls: 'attachment-organizer-section-title' });
+        
+        const destFolderInput = folderSection.createEl('input', {
+            type: 'text',
+            placeholder: 'Enter destination folder path (e.g., new-assets)',
+            cls: 'attachment-organizer-folder-input'
+        });
+        destFolderInput.value = this.destinationFolder;
+        destFolderInput.addEventListener('input', () => {
+            this.destinationFolder = destFolderInput.value.trim();
+        });
+        
+        // Status message for confirmation view
+        this.confirmStatusEl = folderSection.createDiv('attachment-organizer-status-message');
         
         // Create the file list container
-        const fileSection = contentEl.createDiv('attachment-organizer-file-section');
-        fileSection.createEl('h3', { text: 'Files to be moved:', cls: 'attachment-organizer-section-title' });
+        const fileListContainer = contentEl.createDiv('attachment-organizer-file-list');
+        fileListContainer.createEl('h3', { text: 'Files to be moved:' });
         
-        const fileListEl = fileSection.createDiv('attachment-organizer-file-list');
+        const fileList = fileListContainer.createEl('div', { cls: 'attachment-organizer-files' });
         
-        for (const file of this.files) {
-            const fileItemEl = fileListEl.createDiv('attachment-organizer-file-item');
-            
-            // Add icon based on file type
-            const iconEl = fileItemEl.createDiv('attachment-organizer-file-icon');
-            let iconClass = 'document';
-            const ext = file.extension.toLowerCase();
-            if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
-                iconClass = 'image';
-            } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
-                iconClass = 'audio-file';
-            } else if (['mp4', 'webm', 'ogv'].includes(ext)) {
-                iconClass = 'play';
-            }
-            iconEl.innerHTML = `<span class="nav-file-icon ${iconClass}"></span>`;
-            
-            // Add file path
-            const pathEl = fileItemEl.createDiv('attachment-organizer-file-path');
-            pathEl.textContent = file.path;
-            pathEl.setAttribute('title', file.path); // Add tooltip for long paths
-        }
-        
-        // Display new paths (from -> to)
-        const pathsSection = contentEl.createDiv('attachment-organizer-paths-section');
-        pathsSection.createEl('h3', { text: 'New paths will be:', cls: 'attachment-organizer-section-title' });
-        const pathInfoEl = pathsSection.createDiv('attachment-organizer-path-info');
-        pathInfoEl.createDiv('attachment-organizer-path-example', {
-            text: `Example: ${this.files[0]?.path || 'file.png'} → ${this.destinationFolder}/${this.files[0]?.name || 'file.png'}`
+        // Add each file to the list
+        this.files.forEach(file => {
+            fileList.createEl('div', { 
+                text: file.path,
+                cls: 'attachment-organizer-file-item'
+            });
         });
         
-        // Create buttons
-        const buttonContainer = contentEl.createDiv('attachment-organizer-action-buttons');
+        // Create button section
+        const buttonSection = contentEl.createDiv('attachment-organizer-action-buttons');
         
-        const backButton = buttonContainer.createEl('button', {
+        // Cancel button
+        const cancelButton = buttonSection.createEl('button', {
+            text: 'Cancel',
+            cls: 'attachment-organizer-button'
+        });
+        cancelButton.addEventListener('click', () => this.close());
+        
+        // Back button
+        const backButton = buttonSection.createEl('button', {
             text: 'Back',
             cls: 'attachment-organizer-button'
         });
         backButton.addEventListener('click', () => this.onOpen());
         
-        const moveButton = buttonContainer.createEl('button', {
+        // Move button
+        const moveButton = buttonSection.createEl('button', {
             text: 'Move Files',
-            cls: 'attachment-organizer-button attachment-organizer-button-warning'
+            cls: 'attachment-organizer-button attachment-organizer-button-cta'
         });
-        moveButton.addEventListener('click', () => this.moveFiles());
+        moveButton.addEventListener('click', async () => {
+            await this.moveFiles(moveButton);
+        });
+        
+        // Focus destination input
+        setTimeout(() => destFolderInput.focus(), 50);
     }
     
-    async moveFiles() {
-        const { contentEl } = this;
-        contentEl.empty();
-        contentEl.addClass('attachment-organizer-modal');
+    showConfirmStatus(message, type = 'info') {
+        if (!this.confirmStatusEl) return;
         
-        contentEl.createEl('h2', { text: 'Moving Files...' });
-        const statusEl = contentEl.createDiv('attachment-organizer-status');
-        statusEl.setText('Please wait while files are being moved...');
+        this.confirmStatusEl.empty();
+        this.confirmStatusEl.setText(message);
+        
+        // Remove previous status classes
+        this.confirmStatusEl.removeClass('status-info', 'status-error', 'status-success', 'status-warning');
+        // Add the new status class
+        this.confirmStatusEl.addClass(`status-${type}`);
+    }
+    
+    async moveFiles(moveButton) {
+        if (this.loading) return;
+        
+        if (!this.destinationFolder) {
+            this.showConfirmStatus('Please enter a destination folder path', 'error');
+            return;
+        }
+        
+        if (this.sourceFolder === this.destinationFolder) {
+            this.showConfirmStatus('Source and destination folders must be different', 'error');
+            return;
+        }
+        
+        // Normalize destination path
+        const destinationFolder = normalizePath(this.destinationFolder);
+        
+        // Show loading state
+        this.loading = true;
+        moveButton.setText('Moving files...');
+        this.showConfirmStatus('Moving files...', 'info');
         
         try {
-            // Move the files
-            const { movedFiles, errors } = await this.plugin.moveAttachments(this.files, this.destinationFolder);
+            const result = await this.plugin.moveAttachments(this.sourceFolder, destinationFolder, this.files);
             
-            // Create summary
-            contentEl.empty();
-            contentEl.createEl('h2', { text: 'Move Complete' });
-            
-            const summaryEl = contentEl.createDiv('attachment-organizer-summary');
-            summaryEl.createEl('p', { 
-                text: `Successfully moved ${movedFiles.length} files to ${this.destinationFolder}.`,
-                cls: 'attachment-organizer-success-text'
-            });
-            
-            if (errors.length > 0) {
-                const errorSection = contentEl.createDiv('attachment-organizer-error-section');
-                errorSection.createEl('h3', { 
-                    text: `Failed to move ${errors.length} files:`, 
-                    cls: 'attachment-organizer-section-title attachment-organizer-error-title' 
-                });
-                
-                const errorList = errorSection.createDiv('attachment-organizer-error-list');
-                for (const error of errors) {
-                    errorList.createDiv('attachment-organizer-error-item', {
-                        text: `${error.file}: ${error.error}`
-                    });
-                }
+            // Show results
+            if (result.movedFiles.length > 0) {
+                this.showConfirmStatus(`Successfully moved ${result.movedFiles.length} files`, 'success');
             }
             
-            // Add a done button
-            const buttonContainer = contentEl.createDiv('attachment-organizer-action-buttons');
-            const doneButton = buttonContainer.createEl('button', {
-                text: 'Done',
-                cls: 'attachment-organizer-button'
-            });
-            doneButton.addEventListener('click', () => this.close());
+            if (result.errors.length > 0) {
+                this.showConfirmStatus(`Failed to move ${result.errors.length} files. Check console for details.`, 'error');
+                console.error('Move errors:', result.errors);
+            }
             
-            new Notice(`Moved ${movedFiles.length} files to ${this.destinationFolder}.`);
+            // Close after a delay to show the status
+            if (result.errors.length === 0) {
+                setTimeout(() => this.close(), 2000);
+            }
         } catch (err) {
-            statusEl.setText(`Error moving files: ${err}`);
+            this.showConfirmStatus(`Error moving files: ${err.message || err}`, 'error');
             console.error('Error moving files:', err);
-            
-            // Add a close button
-            const buttonContainer = contentEl.createDiv('attachment-organizer-action-buttons');
-            const closeButton = buttonContainer.createEl('button', {
-                text: 'Close',
-                cls: 'attachment-organizer-button'
-            });
-            closeButton.addEventListener('click', () => this.close());
+        } finally {
+            // Reset loading state
+            this.loading = false;
+            moveButton.setText('Move Files');
         }
     }
     
@@ -856,6 +987,6 @@ class MoveAttachmentsModal extends Modal {
         const { contentEl } = this;
         contentEl.empty();
     }
-};
+}
 
 module.exports = AttachmentOrganizerPlugin;

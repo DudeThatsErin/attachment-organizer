@@ -497,6 +497,16 @@ class AttachmentOrganizerModal extends Modal {
                 }));
         
         new Setting(contentEl)
+            .setName('Move Attachments Between Folders')
+            .setDesc('Move attachments from one folder to another')
+            .addButton(button => button
+                .setButtonText('Move')
+                .onClick(() => {
+                    this.close();
+                    this.plugin.moveAttachmentsBetweenFolders();
+                }));
+        
+        new Setting(contentEl)
             .setName('Find Unlinked Attachments')
             .setDesc('Find attachments that are not linked from any notes')
             .addButton(button => button

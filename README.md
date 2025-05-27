@@ -1,14 +1,30 @@
 # Attachment Organizer for Obsidian
 
-A plugin that helps you organize attachments in your Obsidian vault, find unlinked files, and move attachments between folders.
+A comprehensive plugin that helps you organize, manage, and clean up attachments in your Obsidian vault.
 
 ## Features
 
+### Attachment Management
 - **Organize Attachments**: Automatically move all attachments to a designated folder
+- **Custom Attachment Folder**: Configure where your attachments should be stored
+- **Intelligent Path Handling**: Maintains proper link paths when moving files
+- **Attachment Recognition**: Configurable file extensions to determine what counts as an attachment
+
+### Attachment Cleanup
 - **Find Unlinked Attachments**: Identify attachments that aren't linked in any note
 - **Purge Unlinked Attachments**: Safely delete unlinked attachments with confirmation
-- **Move Attachments Between Folders**: Easily move attachments from one folder to another
+- **Visual Confirmation**: Preview files before deletion to avoid accidental removal
 - **Clean Empty Folders**: Automatically remove empty folders after operations
+
+### Batch Operations
+- **Move Attachments Between Folders**: Easily transfer multiple attachments from one folder to another
+- **Bulk Processing**: Handle large numbers of attachments efficiently
+- **Path Verification**: Ensures source and destination paths exist before moving files
+
+### User Experience
+- **Command Palette Integration**: Access all functions directly from Obsidian's command palette
+- **Interactive Modals**: User-friendly confirmation dialogs for potentially destructive operations
+- **Progress Indicators**: Visual feedback during long-running operations
 
 ## Installation with BRAT
 

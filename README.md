@@ -69,7 +69,7 @@ The plugin will automatically organize your attachments into a designated folder
 
 ![image](https://github.com/user-attachments/assets/98e1c1bc-7160-4d07-a389-937d4e927b81)
 <img width="702" alt="image" src="https://github.com/user-attachments/assets/129e9133-be0c-4ff8-a0c4-a1fe78aebac8" />
-
+<img width="489" alt="image" src="https://github.com/user-attachments/assets/cc8a9ce3-8e7c-441e-9a6b-b1de2b104fad" />
 
 
 ## Configuration

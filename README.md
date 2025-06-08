@@ -1,32 +1,43 @@
 # Attachment Organizer for Obsidian
 
-A comprehensive plugin that helps you organize, manage, and clean up attachments in your Obsidian vault.
+A comprehensive plugin that helps you organize, manage, and clean up attachments — plus create structured markdown and PDF files in your Obsidian vault.
 
-## Features
+---
 
-### Attachment Management
-- **Organize Attachments**: Automatically move all attachments to a designated folder
-- **Custom Attachment Folder**: Configure where your attachments should be stored
-- **Intelligent Path Handling**: Maintains proper link paths when moving files
-- **Attachment Recognition**: Configurable file extensions to determine what counts as an attachment
+## 🚀 Features
 
-### Attachment Cleanup
-- **Find Unlinked Attachments**: Identify attachments that aren't linked in any note
-- **Purge Unlinked Attachments**: Safely delete unlinked attachments with confirmation
-- **Visual Confirmation**: Preview files before deletion to avoid accidental removal
-- **Clean Empty Folders**: Automatically remove empty folders after operations
+### 📁 Attachment Management
+- **Organize Attachments**: Automatically move all attachments into a designated folder or subfolders (by date, type, or custom pattern)
+- **Custom Patterns**: Use tokens like `{{year}}`, `{{month}}`, `{{type}}`, `{{basename}}` to define folder structure
+- **Attachment Recognition**: Configurable file extensions define what counts as an attachment
+- **Ignore Folder Rules**: Skip folders when organizing or detecting unlinked files
 
-### Batch Operations
-- **Move Attachments Between Folders**: Easily transfer multiple attachments from one folder to another
-- **Bulk Processing**: Handle large numbers of attachments efficiently
-- **Path Verification**: Ensures source and destination paths exist before moving files
+---
 
-### User Experience
-- **Command Palette Integration**: Access all functions directly from Obsidian's command palette
-- **Interactive Modals**: User-friendly confirmation dialogs for potentially destructive operations
-- **Progress Indicators**: Visual feedback during long-running operations
+### 🧹 Attachment Cleanup
+- **Find Unlinked Attachments**: Identify files not linked from any note
+- **Purge Unlinked Attachments**: Delete unlinked attachments safely, with confirmation
+- **Clean Empty Folders**: Automatically delete empty folders after purging (optional)
 
-## Installation with BRAT
+---
+
+### 📦 Batch Operations
+- **Move Attachments Between Folders**: Easily relocate files in bulk
+- **Path Verification**: Ensures folders exist before file movement
+
+---
+
+### 🛠️ File Creation Tools
+- **Ribbon + Command Palette Access**: Launch file creation modal directly
+- **Markdown and PDF Support**: Create either file type from the modal
+- **Template Selection**: Choose from a dropdown of `.md` or `.pdf` templates in a specified folder
+- **Filename Customization**: Choose file name and optionally prefix or suffix with the current date
+- **Folder Destination**: Select where the file will be saved, using a dropdown of all folders (excluding ignored ones)
+- **Ignored Folders for File Creation**: Specify which folders should be excluded from the file destination list
+
+---
+
+## 🧩 Installation with BRAT
 
 1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat) from the Obsidian Community Plugins
 2. Open BRAT settings
@@ -35,51 +46,58 @@ A comprehensive plugin that helps you organize, manage, and clean up attachments
 5. Click "Add Plugin"
 6. Go to Community Plugins in Obsidian settings and enable "Attachment Organizer"
 
-## Usage
+---
 
-### Organizing Attachments
+## 📘 Usage
 
-The plugin will automatically organize your attachments into a designated folder (default: "00-assets").
+### 🔄 Organizing Attachments
 
-1. Go to Settings > Attachment Organizer
-2. Set your preferred attachment folder path
+1. Go to **Settings > Attachment Organizer**
+2. Set your preferred attachment folder, organization mode (e.g., by date), and file types
 3. Run the "Organize Attachments" command from the Command Palette (Ctrl/Cmd+P)
 
-### Finding Unlinked Attachments
+### 🔍 Finding Unlinked Attachments
 
-1. Run the "Find Unlinked Attachments" command from the Command Palette
-2. The plugin will list all attachments not linked in any note
+1. Run "Find Unlinked Attachments" from the Command Palette
+2. Review a list of unlinked files in the console/logs
 
-### Purging Unlinked Attachments
+### 🗑 Purging Unlinked Attachments
 
-1. Run the "Purge Unlinked Attachments" command from the Command Palette
-2. Review the list of files to be deleted in the confirmation modal
-3. Click "Delete Files" to permanently remove the unlinked attachments
+1. Run "Purge Unlinked Attachments"
+2. Review and confirm the list of files to be deleted
 
-### Moving Attachments Between Folders
+### 🚚 Moving Attachments
 
-1. Run the "Move Attachments Between Folders" command from the Command Palette
-2. Enter the source folder path (e.g., "00-assets/old-images")
-3. Enter the destination folder path (e.g., "00-assets/new-images")
-4. Click "Find Files" to locate attachments in the source folder
-5. Review the files to be moved in the confirmation modal
-6. Click "Move Files" to transfer the attachments to the destination folder
+1. Run "Move Attachments Between Folders"
+2. Enter source and destination folder paths
+3. Review and confirm the move
 
-## Screenshots
+### ✍️ Creating Files (Markdown / PDF)
 
-![image](https://github.com/user-attachments/assets/98e1c1bc-7160-4d07-a389-937d4e927b81)
-<img width="702" alt="image" src="https://github.com/user-attachments/assets/129e9133-be0c-4ff8-a0c4-a1fe78aebac8" />
-<img width="489" alt="image" src="https://github.com/user-attachments/assets/cc8a9ce3-8e7c-441e-9a6b-b1de2b104fad" />
+1. Use the ribbon icon or run "Create: Markdown File" or "Create: PDF File"
+2. Fill out:
+   - File name
+   - Date prefix/suffix option
+   - Target folder (dropdown)
+   - Template (dropdown or none)
+3. Click "Create" — your file is saved and ready
 
+---
 
-## Configuration
+## ⚙️ Configuration
 
-You can configure the following settings:
+Customize all behavior in **Settings > Attachment Organizer**:
 
-- **Attachment Folder**: The folder where attachments will be organized
-- **Attachment Extensions**: File extensions to be considered as attachments
-- **Delete Empty Folders**: Whether to automatically delete empty folders after purging
+- Attachment Folder
+- Attachment Extensions
+- Ignore Folders (organizing/purging)
+- Ignore Folders During File Creation
+- Auto-Organize Mode (`none`, `date`, `type`, `custom`)
+- Custom Folder Pattern (`{{year}}/{{month}}/{{type}}`)
+- Templates Folder for markdown/pdf generation
 
-## Support
+---
 
-For issues, feature requests, or contributions, please visit the [GitHub repository](https://github.com/DudeThatsErin/attachment-organizer).
+## 🛠 Support
+
+For issues, feature requests, or contributions, visit the [GitHub repository](https://github.com/DudeThatsErin/attachment-organizer).

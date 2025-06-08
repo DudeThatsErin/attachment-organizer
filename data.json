@@ -1,6 +1,0 @@
-{
-  "attachmentFolder": "00-assets/04-attachments",
-  "attachmentExtensions": "png,jpg,jpeg,gif,bmp,svg,mp3,wav,mp4,mov,pdf",
-  "confirmPurge": true,
-  "ignoreFolders": "00-assets/00-banners"
-}

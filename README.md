@@ -27,16 +27,6 @@ A comprehensive plugin that helps you organize, manage, and clean up attachments
 
 ---
 
-### 🛠️ File Creation Tools
-- **Ribbon + Command Palette Access**: Launch file creation modal directly
-- **Markdown and PDF Support**: Create either file type from the modal
-- **Template Selection**: Choose from a dropdown of `.md` or `.pdf` templates in a specified folder
-- **Filename Customization**: Choose file name and optionally prefix or suffix with the current date
-- **Folder Destination**: Select where the file will be saved, using a dropdown of all folders (excluding ignored ones)
-- **Ignored Folders for File Creation**: Specify which folders should be excluded from the file destination list
-
----
-
 ## 🧩 Installation with BRAT
 
 1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat) from the Obsidian Community Plugins

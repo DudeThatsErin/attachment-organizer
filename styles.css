@@ -199,12 +199,12 @@
     padding: 6px 12px;
 }
 
-.mod-warning {
+.mod-warning .attachment-organizer {
     color: var(--text-error);
     border-color: var(--text-error);
 }
 
-.mod-warning:hover {
+.mod-warning:hover .attachment-organizer {
     background-color: var(--text-error);
     color: var(--text-on-accent);
 }

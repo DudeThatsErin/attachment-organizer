@@ -1,6 +1,6 @@
 // === Attachment Organizer Plugin ===
 
-const { Plugin, Notice, Modal, Setting, PluginSettingTab, TFile, normalizePath } = require('obsidian');
+const { Plugin, Notice, Modal, Setting, PluginSettingTab, TFile, TFolder, normalizePath } = require('obsidian');
 
 const DEFAULT_SETTINGS = {
     attachmentFolder: 'attachments',
@@ -21,10 +21,10 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
         const { containerEl } = this;
         containerEl.empty();
 
-        containerEl.createEl('h2', { text: 'Attachment Organizer Settings' });
+        // Settings container
 
         new Setting(containerEl)
-            .setName('Attachment Folder')
+            .setName('Attachment folder')
             .setDesc('The base folder where attachments will be organized')
             .addText(text => text
                 .setPlaceholder('attachments')
@@ -35,7 +35,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                 }));
 
         new Setting(containerEl)
-            .setName('Attachment Extensions')
+            .setName('Attachment extensions')
             .setDesc('Comma-separated list of file extensions considered as attachments')
             .addText(text => text
                 .setPlaceholder('png,jpg,jpeg,...')
@@ -46,7 +46,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                 }));
 
         new Setting(containerEl)
-            .setName('Ignore Folders')
+            .setName('Ignore folders')
             .setDesc('Comma-separated list of folder paths to ignore when organizing or purging')
             .addTextArea(text => text
                 .setPlaceholder('folder1,folder2/subfolder')
@@ -57,7 +57,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                 }));
 
         new Setting(containerEl)
-            .setName('Confirm Before Purging')
+            .setName('Confirm before purging')
             .setDesc('Show confirmation prompt before deleting unlinked attachments')
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.confirmPurge)
@@ -67,7 +67,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                 }));
 
         new Setting(containerEl)
-            .setName('Auto-Organize Mode')
+            .setName('Auto-organize mode')
             .setDesc('How attachments should be organized')
             .addDropdown(drop => drop
                 .addOption('none', 'None')
@@ -83,7 +83,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
 
         if (this.plugin.settings.autoOrganizeMode === 'custom') {
             new Setting(containerEl)
-                .setName('Custom Folder Pattern')
+                .setName('Custom folder pattern')
                 .setDesc('Use {{year}}, {{month}}, {{type}}, {{basename}} in folder structure')
                 .addText(text => text
                     .setPlaceholder('{{type}}/{{year}}-{{month}}')
@@ -105,25 +105,25 @@ module.exports = class AttachmentOrganizer extends Plugin {
 
         this.addCommand({
             id: 'organize-attachments',
-            name: 'Organize Attachments',
+            name: 'Organize attachments',
             callback: () => this.organizeAttachments()
         });
 
         this.addCommand({
             id: 'find-unlinked-attachments',
-            name: 'Find Unlinked Attachments',
+            name: 'Find unlinked attachments',
             callback: () => this.findUnlinkedAttachments()
         });
 
         this.addCommand({
             id: 'purge-unlinked-attachments',
-            name: 'Purge Unlinked Attachments',
+            name: 'Purge unlinked attachments',
             callback: () => this.purgeUnlinkedAttachments()
         });
 
         this.addCommand({
             id: 'move-attachments-between-folders',
-            name: 'Move Attachments Between Folders',
+            name: 'Move attachments between folders',
             callback: () => this.moveAttachmentsBetweenFolders()
         });
     }
@@ -141,7 +141,11 @@ module.exports = class AttachmentOrganizer extends Plugin {
     }
 
     async ensureFolderExists(folder) {
-        const exists = await this.app.vault.adapter.exists(folder);
-        if (!exists) await this.app.vault.createFolder(folder);
+        const existingFile = this.app.vault.getAbstractFileByPath(folder);
+        if (!existingFile) {
+            await this.app.vault.createFolder(folder);
+        } else if (!(existingFile instanceof TFolder)) {
+            throw new Error(`Path exists but is not a folder: ${folder}`);
+        }
     }
 };

@@ -2,30 +2,14 @@
   "attachmentFolder": "assets/attachments",
   "attachmentExtensions": "png,jpg,jpeg,gif,bmp,svg,mp3,wav,mp4,mov,pdf",
   "confirmPurge": true,
-  "ignoreFolders": "assets/banners",
+  "ignoreFolders": "assets",
   "autoOrganizeMode": "date",
   "customPattern": "{{type}}/{{year}}-{{month}}",
-  "templateFolder": "assets/templates",
-  "ignoreFileCreationFolders": "assets/banners,assets/attachments,assets/templater",
-  "fileCreationPresets": [
-    {
-      "name": "Daily Log",
-      "type": "md",
-      "folder": "journal/daily",
-      "template": "daily.md",
-      "yaml": {
-        "tags": "daily",
-        "mood": "unknown"
-      },
-      "hotkey": "Mod+Shift+D"
-    },
-    {
-      "name": "PDF Invoice",
-      "type": "pdf",
-      "folder": "invoices",
-      "template": "invoice.pdf",
-      "password": "",
-      "hotkey": "Mod+Shift+I"
-    }
-  ]
+  "ocrEnabled": true,
+  "ocrApiKey": "AIzaSyD4UO4I_kJD6KhS1hJryckSvBw8JjQsFOc",
+  "ocrModel": "gemini-1.5-pro",
+  "ocrWatchFolder": "assets/files",
+  "ocrOutputFolder": "assets/ocr",
+  "ocrAutoProcess": true,
+  "ocrProcessedField": "ocr_processed"
 }

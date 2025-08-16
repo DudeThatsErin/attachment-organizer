@@ -1,8 +1,6 @@
 # Attachment Organizer for Obsidian
 
-A comprehensive plugin that helps you organize, manage, and clean up attachments — plus create structured markdown and PDF files in your Obsidian vault.
-
----
+A comprehensive plugin that helps you organize, manage, and clean up attachments — plus create structured markdown and PDF files with OCR capabilities in your Obsidian vault.
 
 ## 🚀 Features
 
@@ -12,20 +10,21 @@ A comprehensive plugin that helps you organize, manage, and clean up attachments
 - **Attachment Recognition**: Configurable file extensions define what counts as an attachment
 - **Ignore Folder Rules**: Skip folders when organizing or detecting unlinked files
 
----
-
 ### 🧹 Attachment Cleanup
 - **Find Unlinked Attachments**: Identify files not linked from any note
 - **Purge Unlinked Attachments**: Delete unlinked attachments safely, with confirmation
 - **Clean Empty Folders**: Automatically delete empty folders after purging (optional)
 
----
+### 🔍 OCR (Optical Character Recognition)
+- **Extract Text from Images**: Automatically extract text from image attachments (PNG, JPG, JPEG, WEBP, BMP, GIF)
+- **PDF Text Extraction**: Extract text content from PDF files
+- **Automatic Processing**: OCR runs automatically when images/PDFs are added to your vault
+- **Organized Output**: Extracted text is saved in a dedicated `ocr` subfolder within your attachments directory
+- **Markdown Format**: OCR results are saved as [.md](cci:7://file:///f:/Erin%27s%20Cortex/.obsidian/themes/Moonstone/README.md:0:0-0:0) files with the same name as the source file
 
 ### 📦 Batch Operations
 - **Move Attachments Between Folders**: Easily relocate files in bulk
 - **Path Verification**: Ensures folders exist before file movement
-
----
 
 ## 🧩 Installation with BRAT
 
@@ -35,8 +34,6 @@ A comprehensive plugin that helps you organize, manage, and clean up attachments
 4. Enter the repository URL: `https://github.com/DudeThatsErin/attachment-organizer`
 5. Click "Add Plugin"
 6. Go to Community Plugins in Obsidian settings and enable "Attachment Organizer"
-
----
 
 ## 📘 Usage
 
@@ -62,32 +59,61 @@ A comprehensive plugin that helps you organize, manage, and clean up attachments
 2. Enter source and destination folder paths
 3. Review and confirm the move
 
-### ✍️ Creating Files (Markdown / PDF)
+### 🔍 Using OCR Features
+
+#### Automatic OCR Processing
+- **Enable OCR**: Go to **Settings > Attachment Organizer** and toggle "Enable OCR Processing"
+- **Automatic Processing**: When you add images or PDFs to your vault, OCR will automatically run
+- **Find Results**: Extracted text files are saved in `[your-attachment-folder]/ocr/`
+
+#### Manual OCR Processing
+1. Run "Process OCR for All Images" from the Command Palette to process existing images
+2. Run "Process OCR for All PDFs" to process existing PDF files
+3. Individual files can be processed by running "Process OCR for Current File" while viewing an image/PDF
+
+#### OCR Output Format
+- **File Naming**: `original-filename.md` (e.g., `screenshot.png` → `screenshot.md`)
+- **Content Structure**: 
+  ```markdown
+  # OCR Results for [filename]
+  
+  **Source File**: [path/to/original/file]
+  **Processed**: [timestamp]
+  
+  ## Extracted Text
+  
+  [extracted text content here]
+  ```
+#### Supported File Types for OCR
+
+- **Images:** PNG, JPG, JPEG, WEBP, BMP, GIF
+- **Documents:** PDF files
+
+#### ✍️ Creating Files (Markdown / PDF)
 
 1. Use the ribbon icon or run "Create: Markdown File" or "Create: PDF File"
 2. Fill out:
-   - File name
-   - Date prefix/suffix option
-   - Target folder (dropdown)
-   - Template (dropdown or none)
+    - File name
+    - Date prefix/suffix option
+    - Target folder (dropdown)
+    - Template (dropdown or none)
 3. Click "Create" — your file is saved and ready
 
----
 
-## ⚙️ Configuration
+#### ⚙️ Configuration
 
-Customize all behavior in **Settings > Attachment Organizer**:
+Customize all behavior in Settings > Attachment Organizer:
 
-- Attachment Folder
-- Attachment Extensions
-- Ignore Folders (organizing/purging)
-- Ignore Folders During File Creation
-- Auto-Organize Mode (`none`, `date`, `type`, `custom`)
-- Custom Folder Pattern (`{{year}}/{{month}}/{{type}}`)
-- Templates Folder for markdown/pdf generation
+- Attachment Folder: Where attachments are stored
+- Attachment Extensions: File types considered as attachments
+- Ignore Folders: Folders to skip during organizing/purging
+- Ignore Folders During File Creation: Folders to exclude from file creation
+- Auto-Organize Mode: none, date, type, custom
+- Custom Folder Pattern: {{year}}/{{month}}/{{type}}
+- Templates Folder: For markdown/pdf generation
+- Enable OCR Processing: Toggle automatic OCR for new files
+- OCR Output Folder: Subfolder within attachments for OCR results (default: ocr)
 
----
-
-## 🛠 Support
-
-For issues, feature requests, or contributions, visit the [GitHub repository](https://github.com/DudeThatsErin/attachment-organizer).
+  
+#### 🛠 Support
+Join our Discord server for support and discussions: 🔗 [Join the Discord Server](https://discord.gg/zgkMsNcBPT)

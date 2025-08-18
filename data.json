@@ -6,7 +6,7 @@
   "autoOrganizeMode": "date",
   "customPattern": "{{type}}/{{year}}-{{month}}",
   "ocrEnabled": true,
-  "ocrApiKey": "",
+  "ocrApiKey": "AIzaSyD4UO4I_kJD6KhS1hJryckSvBw8JjQsFOc",
   "ocrModel": "gemini-1.5-flash",
   "ocrWatchFolder": "assets/files",
   "ocrOutputFolder": "assets/ocr",

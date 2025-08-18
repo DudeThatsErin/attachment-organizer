@@ -1,5 +1,5 @@
 {
-  "attachmentFolder": "assets/attachments",
+  "attachmentFolder": "assets/files",
   "attachmentExtensions": "png,jpg,jpeg,gif,bmp,svg,mp3,wav,mp4,mov,pdf",
   "confirmPurge": true,
   "ignoreFolders": "assets",
@@ -7,9 +7,16 @@
   "customPattern": "{{type}}/{{year}}-{{month}}",
   "ocrEnabled": true,
   "ocrApiKey": "AIzaSyD4UO4I_kJD6KhS1hJryckSvBw8JjQsFOc",
-  "ocrModel": "gemini-1.5-pro",
+  "ocrModel": "gemini-1.5-flash",
   "ocrWatchFolder": "assets/files",
   "ocrOutputFolder": "assets/ocr",
   "ocrAutoProcess": true,
-  "ocrProcessedField": "ocr_processed"
+  "ocrAutoProcessNewFiles": false,
+  "ocrAutoProcessModifiedFiles": false,
+  "ocrProcessedField": "ocr_processed",
+  "ocrPrompt": "Extract all text from this image/document. Provide the text content clearly and accurately.",
+  "ocrTemplate": "---\nlinked_file: {{filename}}\nprocessed: {{date}}\nstatus: {{status}}\n---\n\n## Extracted Text\n\n{{content}}",
+  "ocrBatchSize": 3,
+  "ocrMaxFileSize": 31457280,
+  "ocrForceReprocess": false
 }

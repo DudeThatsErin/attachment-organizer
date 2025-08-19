@@ -419,430 +419,6 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
     }
 }
 
-class MoveAttachmentsModal extends Modal {
-    constructor(app, plugin) {
-        super(app);
-        this.plugin = plugin;
-        this.sourceFolder = '';
-        this.targetFolder = '';
-        this.selectedExtensions = [];
-    }
-
-    onOpen() {
-        const { contentEl } = this;
-        contentEl.empty();
-        contentEl.createEl('h2', { text: 'Move Attachments Between Folders' });
-
-        // Source folder selection
-        const sourceSetting = contentEl.createDiv('setting-item');
-        sourceSetting.createEl('div', { text: 'Source Folder', cls: 'setting-item-name' });
-        const sourceInput = sourceSetting.createEl('input', { 
-            type: 'text', 
-            placeholder: 'Enter source folder path (e.g., assets/old)',
-            cls: 'setting-item-control'
-        });
-        sourceInput.style.width = '100%';
-        sourceInput.addEventListener('input', (e) => {
-            this.sourceFolder = e.target.value;
-        });
-
-        // Target folder selection
-        const targetSetting = contentEl.createDiv('setting-item');
-        targetSetting.createEl('div', { text: 'Target Folder', cls: 'setting-item-name' });
-        const targetInput = targetSetting.createEl('input', { 
-            type: 'text', 
-            placeholder: 'Enter target folder path (e.g., assets/new)',
-            cls: 'setting-item-control'
-        });
-        targetInput.style.width = '100%';
-        targetInput.addEventListener('input', (e) => {
-            this.targetFolder = e.target.value;
-        });
-
-        // File type filter
-        const filterSetting = contentEl.createDiv('setting-item');
-        filterSetting.createEl('div', { text: 'File Types to Move', cls: 'setting-item-name' });
-        const filterInput = filterSetting.createEl('input', { 
-            type: 'text', 
-            placeholder: 'png,jpg,pdf (leave empty for all attachment types)',
-            cls: 'setting-item-control'
-        });
-        filterInput.style.width = '100%';
-        filterInput.addEventListener('input', (e) => {
-            this.selectedExtensions = e.target.value.split(',').map(ext => ext.trim().toLowerCase()).filter(ext => ext);
-        });
-
-        // Preview section
-        const previewSection = contentEl.createDiv();
-        previewSection.style.marginTop = '20px';
-        const previewButton = previewSection.createEl('button', { text: 'Preview Files to Move' });
-        previewButton.style.marginRight = '10px';
-        
-        const previewResults = previewSection.createDiv();
-        previewResults.style.marginTop = '10px';
-        previewResults.style.maxHeight = '200px';
-        previewResults.style.overflowY = 'auto';
-        previewResults.style.border = '1px solid var(--background-modifier-border)';
-        previewResults.style.padding = '10px';
-        previewResults.style.display = 'none';
-
-        previewButton.addEventListener('click', () => {
-            this.previewMove(previewResults);
-        });
-
-        // Action buttons
-        const buttonContainer = contentEl.createDiv();
-        buttonContainer.style.marginTop = '20px';
-        buttonContainer.style.display = 'flex';
-        buttonContainer.style.gap = '10px';
-
-        const moveButton = buttonContainer.createEl('button', { text: 'Move Files' });
-        moveButton.style.backgroundColor = 'var(--interactive-accent)';
-        moveButton.style.color = 'var(--text-on-accent)';
-
-        const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
-
-        moveButton.addEventListener('click', () => {
-            this.performMove();
-        });
-
-        cancelButton.addEventListener('click', () => {
-            this.close();
-        });
-    }
-
-    async previewMove(previewResults) {
-        if (!this.sourceFolder) {
-            previewResults.textContent = 'Please specify a source folder';
-            previewResults.style.display = 'block';
-            return;
-        }
-
-        const files = this.app.vault.getFiles();
-        const attachmentExtensions = this.plugin.settings.attachmentExtensions.split(',').map(ext => ext.trim().toLowerCase());
-        
-        // Filter files by source folder and extension
-        const filesToMove = files.filter(file => {
-            // Check if file is in source folder
-            if (!file.path.startsWith(this.sourceFolder + '/')) {
-                return false;
-            }
-            
-            // Check if file is an attachment
-            if (!attachmentExtensions.includes(file.extension?.toLowerCase())) {
-                return false;
-            }
-            
-            // Check if file matches selected extensions (if any)
-            if (this.selectedExtensions.length > 0 && !this.selectedExtensions.includes(file.extension?.toLowerCase())) {
-                return false;
-            }
-            
-            return true;
-        });
-
-        if (filesToMove.length === 0) {
-            previewResults.textContent = 'No files found to move';
-        } else {
-            const fileList = filesToMove.map(file => `• ${file.path}`).join('\n');
-            previewResults.textContent = `Found ${filesToMove.length} files to move:\n\n${fileList}`;
-        }
-        
-        previewResults.style.display = 'block';
-    }
-
-    async performMove() {
-        if (!this.sourceFolder || !this.targetFolder) {
-            new Notice('Please specify both source and target folders');
-            return;
-        }
-
-        if (this.sourceFolder === this.targetFolder) {
-            new Notice('Source and target folders cannot be the same');
-            return;
-        }
-
-        const files = this.app.vault.getFiles();
-        const attachmentExtensions = this.plugin.settings.attachmentExtensions.split(',').map(ext => ext.trim().toLowerCase());
-        
-        // Filter files to move
-        const filesToMove = files.filter(file => {
-            if (!file.path.startsWith(this.sourceFolder + '/')) {
-                return false;
-            }
-            
-            if (!attachmentExtensions.includes(file.extension?.toLowerCase())) {
-                return false;
-            }
-            
-            if (this.selectedExtensions.length > 0 && !this.selectedExtensions.includes(file.extension?.toLowerCase())) {
-                return false;
-            }
-            
-            return true;
-        });
-
-        if (filesToMove.length === 0) {
-            new Notice('No files found to move');
-            return;
-        }
-
-        // Confirm the move
-        const confirmed = confirm(`Are you sure you want to move ${filesToMove.length} files from "${this.sourceFolder}" to "${this.targetFolder}"?`);
-        if (!confirmed) {
-            return;
-        }
-
-        // Ensure target folder exists
-        try {
-            await this.plugin.ensureFolderExists(this.targetFolder);
-        } catch (error) {
-            new Notice(`Error creating target folder: ${error.message}`);
-            return;
-        }
-
-        let moved = 0;
-        let failed = 0;
-
-        for (const file of filesToMove) {
-            try {
-                const relativePath = file.path.substring(this.sourceFolder.length + 1);
-                const newPath = `${this.targetFolder}/${relativePath}`;
-                
-                // Ensure subdirectories exist in target
-                const newDir = newPath.substring(0, newPath.lastIndexOf('/'));
-                if (newDir !== this.targetFolder) {
-                    await this.plugin.ensureFolderExists(newDir);
-                }
-                
-                await this.app.vault.rename(file, newPath);
-                moved++;
-            } catch (error) {
-                console.error(`Failed to move ${file.path}:`, error);
-                failed++;
-            }
-        }
-
-        new Notice(`Moved ${moved} files successfully${failed > 0 ? `, ${failed} failed` : ''}`);
-        this.close();
-    }
-
-    onClose() {
-        const { contentEl } = this;
-        contentEl.empty();
-    }
-}
-
-class PurgeConfirmationModal extends Modal {
-    constructor(app, plugin, resolve) {
-        super(app);
-        this.plugin = plugin;
-        this.resolve = resolve;
-    }
-
-    async onOpen() {
-        const { contentEl } = this;
-        contentEl.empty();
-        contentEl.addClass('purge-confirmation-modal');
-        
-        // Add custom styles
-        const style = contentEl.createEl('style');
-        style.textContent = `
-            .purge-confirmation-modal {
-                padding: 24px;
-                max-width: 500px;
-            }
-            .purge-modal-header {
-                display: flex;
-                align-items: center;
-                margin-bottom: 20px;
-                color: var(--text-error);
-            }
-            .purge-modal-icon {
-                font-size: 24px;
-                margin-right: 12px;
-            }
-            .purge-modal-title {
-                font-size: 18px;
-                font-weight: 600;
-                margin: 0;
-            }
-            .purge-modal-content {
-                margin-bottom: 24px;
-                line-height: 1.5;
-            }
-            .purge-modal-warning {
-                background: rgba(220, 38, 127, 0.1);
-                border: 1px solid var(--text-error);
-                border-radius: 6px;
-                padding: 12px;
-                margin: 16px 0;
-                color: var(--text-normal);
-                font-weight: 500;
-            }
-            .purge-modal-stats {
-                background: var(--background-secondary);
-                border-radius: 6px;
-                padding: 16px;
-                margin: 16px 0;
-                border: 1px solid var(--background-modifier-border);
-            }
-            .purge-modal-buttons {
-                display: flex;
-                gap: 12px;
-                justify-content: flex-end;
-            }
-            .purge-modal-button {
-                padding: 8px 16px;
-                border-radius: 4px;
-                border: none;
-                cursor: pointer;
-                font-weight: 500;
-                transition: all 0.2s ease;
-            }
-            .purge-modal-button-cancel {
-                background: var(--interactive-normal);
-                color: var(--text-normal);
-            }
-            .purge-modal-button-cancel:hover {
-                background: var(--interactive-hover);
-            }
-            .purge-modal-button-confirm {
-                background: var(--text-error);
-                color: var(--text-on-accent);
-            }
-            .purge-modal-button-confirm:hover {
-                background: var(--text-error);
-                opacity: 0.8;
-            }
-        `;
-
-        // Get unlinked attachments count
-        const unlinkedCount = await this.getUnlinkedAttachmentsCount();
-
-        // Header
-        const header = contentEl.createDiv('purge-modal-header');
-        header.createSpan('purge-modal-icon').textContent = '⚠️';
-        header.createEl('h2', { text: 'Confirm Purge Unlinked Attachments', cls: 'purge-modal-title' });
-
-        // Content
-        const content = contentEl.createDiv('purge-modal-content');
-        content.style.cssText = `
-            margin-bottom: 24px;
-            line-height: 1.5;
-            color: var(--text-normal);
-            font-size: 14px;
-        `;
-        content.createEl('p', { text: 'You are about to permanently delete all unlinked attachments from your vault.' });
-
-        // Warning box
-        const warning = contentEl.createDiv('purge-modal-warning');
-        warning.style.cssText = `
-            background: rgba(220, 38, 127, 0.15);
-            border: 2px solid #dc267f;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 16px 0;
-            color: var(--text-normal);
-            font-weight: 600;
-            font-size: 14px;
-        `;
-        warning.innerHTML = '🚨 <strong style="color: #dc267f;">This action cannot be undone!</strong> All deleted files will be permanently removed from your system.';
-
-        // Stats
-        const stats = contentEl.createDiv('purge-modal-stats');
-        stats.style.cssText = `
-            background: var(--background-secondary);
-            border-radius: 8px;
-            padding: 16px;
-            margin: 16px 0;
-            border: 1px solid var(--background-modifier-border);
-            color: var(--text-normal);
-            font-size: 14px;
-            font-weight: 500;
-        `;
-        stats.createEl('div', { text: `📊 Attachments to be deleted: ${unlinkedCount}` });
-        if (unlinkedCount === 0) {
-            stats.createEl('div', { text: '✅ No unlinked attachments found.' });
-        }
-
-        // Additional info
-        const infoP = content.createEl('p', { text: 'This will scan all markdown files in your vault and delete any attachment files that are not referenced.' });
-        infoP.style.color = 'var(--text-normal)';
-
-        // Buttons
-        const buttons = contentEl.createDiv('purge-modal-buttons');
-        
-        const cancelButton = buttons.createEl('button', { 
-            text: 'Cancel', 
-            cls: 'purge-modal-button purge-modal-button-cancel' 
-        });
-        
-        const confirmButton = buttons.createEl('button', { 
-            text: `Delete ${unlinkedCount} Files`, 
-            cls: 'purge-modal-button purge-modal-button-confirm' 
-        });
-
-        if (unlinkedCount === 0) {
-            confirmButton.textContent = 'Nothing to Delete';
-            confirmButton.disabled = true;
-            confirmButton.style.opacity = '0.5';
-        }
-
-        cancelButton.addEventListener('click', () => {
-            this.resolve(false);
-            this.close();
-        });
-
-        confirmButton.addEventListener('click', () => {
-            this.resolve(true);
-            this.close();
-        });
-    }
-
-    async getUnlinkedAttachmentsCount() {
-        const files = this.app.vault.getFiles();
-        const attachmentExtensions = this.plugin.settings.attachmentExtensions.split(',').map(ext => ext.trim().toLowerCase());
-        const attachments = files.filter(file => attachmentExtensions.includes(file.extension?.toLowerCase()));
-        
-        const ignoreFolders = this.plugin.settings.ignoreFolders.split(',').map(f => f.trim()).filter(f => f);
-        const filteredAttachments = attachments.filter(file => {
-            return !ignoreFolders.some(folder => file.path.startsWith(folder + '/'));
-        });
-        
-        const linkedAttachments = new Set();
-        const markdownFiles = files.filter(file => file.extension === 'md');
-
-        for (const mdFile of markdownFiles) {
-            try {
-                const content = await this.app.vault.read(mdFile);
-                const linkRegex = /\[\[([^\]\|]+)(\|[^\]]*)?\]\]|!\[\[([^\]\|]+)(\|[^\]]*)?\]\]|!\[([^\]]*)\]\(([^\)]+)\)/g;
-                let match;
-                
-                while ((match = linkRegex.exec(content)) !== null) {
-                    const linkedFile = match[1] || match[3] || match[6];
-                    if (linkedFile) {
-                        const resolvedFile = this.app.metadataCache.getFirstLinkpathDest(linkedFile, mdFile.path);
-                        if (resolvedFile) {
-                            linkedAttachments.add(resolvedFile.path);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error(`Error reading file ${mdFile.path}:`, error);
-            }
-        }
-
-        const unlinkedAttachments = filteredAttachments.filter(file => !linkedAttachments.has(file.path));
-        return unlinkedAttachments.length;
-    }
-
-    onClose() {
-        const { contentEl } = this;
-        contentEl.empty();
-    }
-}
-
 module.exports = class AttachmentOrganizer extends Plugin {
     async onload() {
         console.log('Loading Attachment Organizer plugin');
@@ -998,67 +574,37 @@ module.exports = class AttachmentOrganizer extends Plugin {
         const attachmentExtensions = this.settings.attachmentExtensions.split(',').map(ext => ext.trim().toLowerCase());
         const attachments = files.filter(file => attachmentExtensions.includes(file.extension?.toLowerCase()));
         
-        // Skip files in ignored folders
-        const ignoreFolders = this.settings.ignoreFolders.split(',').map(f => f.trim()).filter(f => f);
-        const filteredAttachments = attachments.filter(file => {
-            return !ignoreFolders.some(folder => file.path.startsWith(folder + '/'));
-        });
-        
         const linkedAttachments = new Set();
         const markdownFiles = files.filter(file => file.extension === 'md');
 
         for (const mdFile of markdownFiles) {
-            try {
-                const content = await this.app.vault.read(mdFile);
-                // Enhanced regex to catch more link formats
-                const linkRegex = /\[\[([^\]\|]+)(\|[^\]]*)?\]\]|!\[\[([^\]\|]+)(\|[^\]]*)?\]\]|!\[([^\]]*)\]\(([^\)]+)\)/g;
-                let match;
-                
-                while ((match = linkRegex.exec(content)) !== null) {
-                    const linkedFile = match[1] || match[3] || match[6];
-                    if (linkedFile) {
-                        const resolvedFile = this.app.metadataCache.getFirstLinkpathDest(linkedFile, mdFile.path);
-                        if (resolvedFile) {
-                            linkedAttachments.add(resolvedFile.path);
-                        }
-                    }
+            const content = await this.app.vault.read(mdFile);
+            const linkRegex = /\[\[([^\]]+)\]\]|!\[\[([^\]]+)\]\]/g;
+            let match;
+            
+            while ((match = linkRegex.exec(content)) !== null) {
+                const linkedFile = match[1] || match[2];
+                const resolvedFile = this.app.metadataCache.getFirstLinkpathDest(linkedFile, mdFile.path);
+                if (resolvedFile) {
+                    linkedAttachments.add(resolvedFile.path);
                 }
-            } catch (error) {
-                console.error(`Error reading file ${mdFile.path}:`, error);
             }
         }
 
-        const unlinkedAttachments = filteredAttachments.filter(file => !linkedAttachments.has(file.path));
+        const unlinkedAttachments = attachments.filter(file => !linkedAttachments.has(file.path));
         
         if (unlinkedAttachments.length === 0) {
             new Notice('No unlinked attachments found');
             return;
         }
 
-        // Create the report content
-        const list = unlinkedAttachments.map(file => `- [[${file.path}]]`).join('\n');
-        const reportContent = `# Unlinked Attachments Report\n\nFound ${unlinkedAttachments.length} unlinked attachments:\n\n${list}\n\n---\n\n**Total attachments scanned:** ${filteredAttachments.length}\n**Linked attachments:** ${linkedAttachments.size}\n**Unlinked attachments:** ${unlinkedAttachments.length}\n\n*Generated on: ${new Date().toLocaleString()}*`;
+        const list = unlinkedAttachments.map(file => `- ${file.path}`).join('\n');
+        const content = `# Unlinked Attachments\n\nFound ${unlinkedAttachments.length} unlinked attachments:\n\n${list}`;
         
-        // Create or update the report file
-        const reportPath = 'Unlinked Attachments Report.md';
-        try {
-            const existingFile = this.app.vault.getAbstractFileByPath(reportPath);
-            if (existingFile instanceof TFile) {
-                await this.app.vault.modify(existingFile, reportContent);
-            } else {
-                await this.app.vault.create(reportPath, reportContent);
-            }
-            
-            // Open the report
-            const reportFile = this.app.vault.getAbstractFileByPath(reportPath);
-            if (reportFile instanceof TFile) {
-                await this.app.workspace.getLeaf().openFile(reportFile);
-            }
-            
-            new Notice(`Found ${unlinkedAttachments.length} unlinked attachments. Report created.`);
-        } catch (error) {
-            console.error('Error creating unlinked attachments report:', error);
-            new Notice('Error creating report. Check console for details.');
+        await this.app.workspace.openLinkText('Unlinked Attachments Report', '', true);
+        const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (activeView) {
+            activeView.editor.setValue(content);
         }
     }
 
@@ -1068,8 +614,8 @@ module.exports = class AttachmentOrganizer extends Plugin {
             return;
         }
 
-        // Use styled confirmation modal
-        const confirmed = await this.showPurgeConfirmationModal();
+        // This would need a proper confirmation dialog in a real implementation
+        const confirmed = confirm('Are you sure you want to delete all unlinked attachments? This cannot be undone.');
         if (!confirmed) {
             return;
         }
@@ -1111,13 +657,7 @@ module.exports = class AttachmentOrganizer extends Plugin {
     }
 
     async moveAttachmentsBetweenFolders() {
-        new MoveAttachmentsModal(this.app, this).open();
-    }
-
-    async showPurgeConfirmationModal() {
-        return new Promise((resolve) => {
-            new PurgeConfirmationModal(this.app, this, resolve).open();
-        });
+        new Notice('Move attachments feature not yet implemented');
     }
 
     async loadSettings() {

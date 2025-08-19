@@ -2,6 +2,13 @@
 
 A comprehensive plugin that helps you organize, manage, and clean up attachments — plus create structured markdown and PDF files with OCR capabilities in your Obsidian vault.
 
+<img width="1584" height="1680" alt="image" src="https://github.com/user-attachments/assets/99db5692-b9c5-4541-8016-ed07d07a757e" />
+
+<img width="1620" height="1740" alt="image" src="https://github.com/user-attachments/assets/2c115120-8244-4dfe-bdc0-21ac9870ed74" />
+
+<img width="1542" height="1650" alt="image" src="https://github.com/user-attachments/assets/38ce4001-2407-40da-91ba-e5b1caa66599" />
+
+
 ## 🚀 Features
 
 ### 📁 Attachment Management

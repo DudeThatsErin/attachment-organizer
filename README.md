@@ -33,15 +33,6 @@ A comprehensive plugin that helps you organize, manage, and clean up attachments
 - **Move Attachments Between Folders**: Easily relocate files in bulk
 - **Path Verification**: Ensures folders exist before file movement
 
-## 🧩 Installation with BRAT
-
-1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat) from the Obsidian Community Plugins
-2. Open BRAT settings
-3. Click "Add Beta Plugin"
-4. Enter the repository URL: `https://github.com/DudeThatsErin/attachment-organizer`
-5. Click "Add Plugin"
-6. Go to Community Plugins in Obsidian settings and enable "Attachment Organizer"
-
 ## Installation
 
 ### 📦 Obsidian Plugin Store (Pending Approval)

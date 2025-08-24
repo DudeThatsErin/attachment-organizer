@@ -2,6 +2,13 @@
 
 A comprehensive plugin that helps you organize, manage, and clean up attachments — plus create structured markdown and PDF files with OCR capabilities in your Obsidian vault.
 
+<img width="1584" height="1680" alt="image" src="https://github.com/user-attachments/assets/99db5692-b9c5-4541-8016-ed07d07a757e" />
+
+<img width="1620" height="1740" alt="image" src="https://github.com/user-attachments/assets/2c115120-8244-4dfe-bdc0-21ac9870ed74" />
+
+<img width="1542" height="1650" alt="image" src="https://github.com/user-attachments/assets/38ce4001-2407-40da-91ba-e5b1caa66599" />
+
+
 ## 🚀 Features
 
 ### 📁 Attachment Management
@@ -26,14 +33,20 @@ A comprehensive plugin that helps you organize, manage, and clean up attachments
 - **Move Attachments Between Folders**: Easily relocate files in bulk
 - **Path Verification**: Ensures folders exist before file movement
 
-## 🧩 Installation with BRAT
+## Installation
 
-1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat) from the Obsidian Community Plugins
+### 📦 Obsidian Plugin Store (Pending Approval)
+
+You'll soon be able to find it directly in the Community Plugins browser.
+
+### 🧪 Using BRAT (Beta Reviewer's Auto-update Tool)
+
+1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat)
 2. Open BRAT settings
-3. Click "Add Beta Plugin"
-4. Enter the repository URL: `https://github.com/DudeThatsErin/attachment-organizer`
-5. Click "Add Plugin"
-6. Go to Community Plugins in Obsidian settings and enable "Attachment Organizer"
+3. Click **Add Beta Plugin**
+4. Enter: `DudeThatsErin/AttachmentOrganizer`
+5. Click **Add Plugin**
+6. Enable "Attachment Organizer" in Community Plugins settings
 
 ## 📘 Usage
 
@@ -122,35 +135,4 @@ Customize all behavior in Settings > Attachment Organizer:
 - ⭐ [Star on GitHub](https://github.com/DudeThatsErin/AttachmentOrganizer)
 - ☕ [Buy Me a Coffee](https://buymeacoffee.com/erinskidds)
 
-## Installation
 
-### 📦 Obsidian Plugin Store (Pending Approval)
-
-You'll soon be able to find it directly in the Community Plugins browser.
-
-### 🧪 Using BRAT (Beta Reviewer's Auto-update Tool)
-
-1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat)
-2. Open BRAT settings
-3. Click **Add Beta Plugin**
-4. Enter: `DudeThatsErin/AttachmentOrganizer`
-5. Click **Add Plugin**
-6. Enable "Attachment Organizer" in Community Plugins settings
-
-## Changelog
-
-### v2.0.0
-- Added OCR capabilities with Google Gemini AI integration
-- Enhanced settings with support links
-- Improved error handling and notifications
-- Added automatic OCR processing for new files
-
-### v1.0.0
-- Initial release
-- Attachment organization and cleanup
-- Unlinked file detection and purging
-- Custom folder patterns and organization modes
-
-## License
-
-This plugin is licensed under the MIT License.

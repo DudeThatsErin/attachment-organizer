@@ -44,7 +44,7 @@ You'll soon be able to find it directly in the Community Plugins browser.
 1. Install the [BRAT plugin](https://github.com/TfTHacker/obsidian42-brat)
 2. Open BRAT settings
 3. Click **Add Beta Plugin**
-4. Enter: `DudeThatsErin/AttachmentOrganizer`
+4. Enter: `DudeThatsErin/attachment-organizer`
 5. Click **Add Plugin**
 6. Enable "Attachment Organizer" in Community Plugins settings
 

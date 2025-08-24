@@ -43,31 +43,31 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
          // Support & Links Section
          this.createAccordionSection(containerEl, 'Support & Links', () => {
             const supportContainer = containerEl.createDiv();
-            supportContainer.style.cssText = 'display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0;';
+            supportContainer.className = 'support-container';
             
             const buyMeACoffeeBtn = supportContainer.createEl('a', { 
                 text: '☕ Buy Me a Coffee',
                 href: 'https://buymeacoffee.com/erinskidds'
             });
-            buyMeACoffeeBtn.style.cssText = 'background: #FFDD00; color: #000; padding: 8px 12px; border-radius: 4px; text-decoration: none; font-size: 12px;';
+            buyMeACoffeeBtn.className = 'support-link coffee-link';
             
             const githubBtn = supportContainer.createEl('a', { 
                 text: '⭐ Star on GitHub',
-                href: 'https://github.com/DudeThatsErin/FileCreator'
+                href: 'https://github.com/DudeThatsErin/AttachmentOrganizer'
             });
-            githubBtn.style.cssText = 'background: #24292e; color: #fff; padding: 8px 12px; border-radius: 4px; text-decoration: none; font-size: 12px;';
+            githubBtn.className = 'support-link github-link';
             
             const issuesBtn = supportContainer.createEl('a', { 
                 text: '🐛 Report Issues',
-                href: 'https://github.com/DudeThatsErin/FileCreator/issues'
+                href: 'https://github.com/DudeThatsErin/AttachmentOrganizer/issues'
             });
-            issuesBtn.style.cssText = 'background: #d73a49; color: #fff; padding: 8px 12px; border-radius: 4px; text-decoration: none; font-size: 12px;';
+            issuesBtn.className = 'support-link issues-link';
             
             const discordBtn = supportContainer.createEl('a', { 
                 text: '💬 Discord Support',
-                href: 'https://discord.gg/your-discord-server'
+                href: 'https://discord.gg/XcJWhE3SEA'
             });
-            discordBtn.style.cssText = 'background: #5865F2; color: #fff; padding: 8px 12px; border-radius: 4px; text-decoration: none; font-size: 12px;';
+            discordBtn.className = 'support-link discord-link';
         });
 
         // Basic Attachment Settings
@@ -106,18 +106,19 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                     }));
 
             new Setting(containerEl)
-                .setName('Confirm before purging')
-                .setDesc('Show confirmation prompt before deleting unlinked attachments')
+                .setName('Show notifications')
+                .setDesc('Show notifications before deleting unlinked attachments')
                 .addToggle(toggle => toggle
                     .setValue(this.plugin.settings.confirmPurge)
                     .onChange(async (value) => {
                         this.plugin.settings.confirmPurge = value;
                         await this.plugin.saveSettings();
+                        this.display();
                     }));
         });
 
-        // Organization Settings
-        this.createAccordionSection(containerEl, 'Organization Settings', () => {
+        // Organization settings
+        this.createAccordionSection(containerEl, 'Organization settings', () => {
             new Setting(containerEl)
                 .setName('Auto-organize mode')
                 .setDesc('How attachments should be organized')
@@ -153,9 +154,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                 text: 'Automatically extract text from images and PDFs using Google Gemini AI',
                 cls: 'setting-item-description'
             });
-            ocrDesc.style.marginBottom = '16px';
-            ocrDesc.style.color = 'var(--text-muted)';
-            ocrDesc.style.fontSize = '0.875em';
+            ocrDesc.className = 'ocr-description';
 
             new Setting(containerEl)
                 .setName('Enable OCR')
@@ -170,7 +169,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
 
             if (this.plugin.settings.ocrEnabled) {
                 new Setting(containerEl)
-                    .setName('Gemini API Key')
+                    .setName('OCR API key')
                     .setDesc('Get your API key from Google AI Studio (https://makersuite.google.com/app/apikey)')
                     .addText(text => text
                         .setPlaceholder('AIza...')
@@ -181,7 +180,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                         }));
 
                 new Setting(containerEl)
-                    .setName('Gemini Model')
+                    .setName('Gemini model')
                     .setDesc('The Gemini model to use for OCR')
                     .addDropdown(drop => drop
                         .addOption('gemini-1.5-flash', 'Gemini 1.5 Flash (Recommended)')
@@ -193,7 +192,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                         }));
 
                 new Setting(containerEl)
-                    .setName('OCR Watch Folder')
+                    .setName('OCR watch folder')
                     .setDesc('Folder to monitor for images and PDFs to OCR')
                     .addText(text => text
                         .setPlaceholder('assets/attachments')
@@ -204,7 +203,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                         }));
 
                 new Setting(containerEl)
-                    .setName('OCR Output Folder')
+                    .setName('OCR output folder')
                     .setDesc('Where to save OCR notes (leave empty to use same folder as source)')
                     .addText(text => text
                         .setPlaceholder('assets/attachments/ocr')
@@ -218,9 +217,9 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
 
         // OCR Processing Settings
         if (this.plugin.settings.ocrEnabled) {
-            this.createAccordionSection(containerEl, 'OCR Processing Settings', () => {
+            this.createAccordionSection(containerEl, 'OCR processing settings', () => {
                 new Setting(containerEl)
-                    .setName('Batch Size')
+                    .setName('Batch size')
                     .setDesc('Number of files to process in each batch (1 recommended for free tier)')
                     .addSlider(slider => slider
                         .setLimits(1, 5, 1)
@@ -232,7 +231,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                         }));
 
                 new Setting(containerEl)
-                    .setName('Max File Size (MB)')
+                    .setName('Max file size (MB)')
                     .setDesc('Maximum file size to process (larger files will be skipped)')
                     .addSlider(slider => slider
                         .setLimits(1, 50, 1)
@@ -244,7 +243,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                         }));
 
                 new Setting(containerEl)
-                    .setName('Force Reprocess')
+                    .setName('Force reprocess')
                     .setDesc('Always reprocess files even if OCR already exists (useful for testing)')
                     .addToggle(toggle => toggle
                         .setValue(this.plugin.settings.ocrForceReprocess)
@@ -274,7 +273,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                         }));
 
                 new Setting(containerEl)
-                    .setName('OCR Processed Field')
+                    .setName('OCR processed field')
                     .setDesc('YAML frontmatter field name to mark files as processed')
                     .addText(text => text
                         .setPlaceholder('ocr-processed')
@@ -286,9 +285,9 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
             });
 
             // OCR Templates Section
-            this.createAccordionSection(containerEl, 'OCR Templates', () => {
+            this.createAccordionSection(containerEl, 'OCR templates', () => {
                 const ocrPromptSetting = new Setting(containerEl)
-                    .setName('OCR Prompt')
+                    .setName('OCR prompt')
                     .setDesc('Custom prompt to send to Gemini for OCR processing')
                     .setClass('setting-item-heading');
                 
@@ -296,17 +295,15 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                 const promptTextArea = ocrPromptSetting.settingEl.createEl('textarea');
                 promptTextArea.placeholder = 'Extract all text from this image/document...';
                 promptTextArea.value = this.plugin.settings.ocrPrompt;
-                promptTextArea.rows = 4;
-                promptTextArea.style.width = '100%';
-                promptTextArea.style.minHeight = '80px';
-                promptTextArea.style.marginTop = '8px';
+                promptTextArea.rows = 8;
+                promptTextArea.className = 'ocr-template-textarea';
                 promptTextArea.addEventListener('input', async (e) => {
                     this.plugin.settings.ocrPrompt = e.target.value;
                     await this.plugin.saveSettings();
                 });
 
                 const ocrTemplateSetting = new Setting(containerEl)
-                    .setName('OCR Output Template')
+                    .setName('OCR output template')
                     .setDesc('Template for OCR output notes. Available variables: {{filename}}, {{date}}, {{status}}, {{content}}')
                     .setClass('setting-item-heading');
                 
@@ -314,10 +311,8 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                 const templateTextArea = ocrTemplateSetting.settingEl.createEl('textarea');
                 templateTextArea.placeholder = '# OCR Result for {{filename}}...';
                 templateTextArea.value = this.plugin.settings.ocrTemplate;
-                templateTextArea.rows = 6;
-                templateTextArea.style.width = '100%';
-                templateTextArea.style.minHeight = '120px';
-                templateTextArea.style.marginTop = '8px';
+                templateTextArea.rows = 10;
+                templateTextArea.className = 'ocr-template-textarea';
                 templateTextArea.addEventListener('input', async (e) => {
                     this.plugin.settings.ocrTemplate = e.target.value;
                     await this.plugin.saveSettings();
@@ -330,42 +325,17 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
         const accordionContainer = containerEl.createDiv('accordion-section');
         
         const header = accordionContainer.createDiv('accordion-header');
-        header.style.cssText = `
-            cursor: pointer;
-            padding: 12px 16px;
-            background: var(--background-modifier-border);
-            border: 1px solid var(--background-modifier-border);
-            border-radius: 6px;
-            margin: 16px 0 8px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-weight: 600;
-            transition: background-color 0.2s ease;
-        `;
+        header.className = 'accordion-header';
         
         const headerText = header.createSpan();
         headerText.textContent = title;
         
         const arrow = header.createSpan('accordion-arrow');
         arrow.textContent = '▼';
-        arrow.style.cssText = `
-            transition: transform 0.2s ease;
-            font-size: 12px;
-        `;
+        arrow.className = 'accordion-arrow';
         
         const content = accordionContainer.createDiv('accordion-content');
-        content.style.cssText = `
-            border-left: 1px solid var(--background-modifier-border);
-            border-right: 1px solid var(--background-modifier-border);
-            border-bottom: 1px solid var(--background-modifier-border);
-            border-radius: 0 0 6px 6px;
-            margin-bottom: 16px;
-            padding: 16px;
-            max-height: 1000px;
-            overflow: hidden;
-            transition: max-height 0.3s ease, padding 0.3s ease;
-        `;
+        content.className = 'accordion-content';
         
         let isExpanded = true; // Start expanded
         
@@ -373,28 +343,25 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
             isExpanded = !isExpanded;
             
             if (isExpanded) {
-                content.style.maxHeight = '1000px';
-                content.style.padding = '16px';
-                arrow.style.transform = 'rotate(0deg)';
-                header.style.borderRadius = '6px 6px 0 0';
+                content.classList.add('expanded');
+                content.classList.remove('collapsed');
+                arrow.classList.add('expanded');
+                arrow.classList.remove('collapsed');
+                header.classList.add('expanded');
+                header.classList.remove('collapsed');
             } else {
-                content.style.maxHeight = '0';
-                content.style.padding = '0 16px';
-                arrow.style.transform = 'rotate(-90deg)';
-                header.style.borderRadius = '6px';
+                content.classList.add('collapsed');
+                content.classList.remove('expanded');
+                arrow.classList.add('collapsed');
+                arrow.classList.remove('expanded');
+                header.classList.add('collapsed');
+                header.classList.remove('expanded');
             }
         };
         
         header.addEventListener('click', toggleAccordion);
         
-        // Add hover effect
-        header.addEventListener('mouseenter', () => {
-            header.style.backgroundColor = 'var(--background-modifier-hover)';
-        });
-        
-        header.addEventListener('mouseleave', () => {
-            header.style.backgroundColor = 'var(--background-modifier-border)';
-        });
+        // Hover effects are now handled by CSS
         
         // Call the content callback to populate the accordion
         const tempContainer = containerEl.createDiv();
@@ -497,7 +464,7 @@ module.exports = class AttachmentOrganizer extends Plugin {
     }
 
     onunload() {
-        console.log('Unloading Attachment Organizer plugin');
+        // Clean up any remaining resources
     }
 
     async organizeAttachments() {
@@ -1127,8 +1094,6 @@ module.exports = class AttachmentOrganizer extends Plugin {
     }
 
     onunload() {
-        console.log('Unloading Attachment Organizer plugin');
-        
         // Stop any ongoing OCR processing
         this.ocrStopRequested = true;
         

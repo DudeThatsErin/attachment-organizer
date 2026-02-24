@@ -1,0 +1,9 @@
+{
+  "id": "attachment-organizer",
+  "name": "Attachment Organizer",
+  "description": "Automatically organizes attachments into a designated folder on app load and at configurable intervals. Shows a confirmation modal on first run.",
+  "version": "1.0.0",
+  "author": "Erin",
+  "minAppVersion": "1.0.0",
+  "isDesktopOnly": false
+}

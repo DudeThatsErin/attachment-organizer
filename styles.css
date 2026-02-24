@@ -1,0 +1,59 @@
+.attachment-organizer-modal .modal-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.attachment-organizer-modal .ao-file-list {
+  margin: 12px 0;
+  padding: 8px 12px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.attachment-organizer-modal .ao-file-item {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.attachment-organizer-modal .ao-file-item:last-child {
+  border-bottom: none;
+}
+
+.attachment-organizer-modal .ao-file-from {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.attachment-organizer-modal .ao-file-to {
+  color: var(--text-accent);
+  font-size: 12px;
+}
+
+.attachment-organizer-modal .ao-summary {
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: var(--background-secondary-alt);
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.attachment-organizer-modal .ao-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.attachment-organizer-modal .ao-buttons button {
+  padding: 6px 16px;
+}
+
+.attachment-organizer-settings .setting-item-description {
+  font-size: 13px;
+}

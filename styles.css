@@ -219,3 +219,88 @@
     font-size: 0.9em;
     margin-top: 8px;
 }
+
+/* Purge Unlinked Modal */
+.ao-purge-desc {
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.ao-purge-warning {
+    color: var(--text-error);
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.ao-purge-bulk-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.ao-purge-count {
+    margin-left: auto;
+    font-size: 0.85em;
+    color: var(--text-muted);
+}
+
+.ao-purge-list {
+    max-height: 350px;
+    overflow-y: auto;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    background: var(--background-secondary);
+}
+
+.ao-purge-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.ao-purge-row:last-child {
+    border-bottom: none;
+}
+
+.ao-purge-row input[type="checkbox"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.ao-purge-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    cursor: pointer;
+    flex: 1;
+}
+
+.ao-purge-name {
+    font-weight: 500;
+    font-size: 0.9em;
+}
+
+.ao-purge-path {
+    font-size: 0.78em;
+    color: var(--text-muted);
+    word-break: break-all;
+}
+
+.ao-purge-icon {
+    flex-shrink: 0;
+}
+
+.ao-purge-confirm-list .ao-purge-row {
+    background: rgba(var(--color-red-rgb, 220, 50, 50), 0.05);
+}
+
+.ao-purge-btn-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}

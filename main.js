@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS = {
     // OCR Settings
     ocrEnabled: false,
     ocrApiKey: '',
-    ocrModel: 'gemini-1.5-flash',
+    ocrModel: 'gemini-2.0-flash',
     ocrWatchFolder: 'assets/attachments',
     ocrOutputFolder: 'assets/attachments/ocr',
     ocrAutoProcess: true,
@@ -183,8 +183,11 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                     .setName('Gemini model')
                     .setDesc('The Gemini model to use for OCR')
                     .addDropdown(drop => drop
-                        .addOption('gemini-1.5-flash', 'Gemini 1.5 Flash (Recommended)')
+                        .addOption('gemini-2.0-flash', 'Gemini 2.0 Flash (Fastest, Recommended)')
+                        .addOption('gemini-2.0-flash-lite', 'Gemini 2.0 Flash-Lite (Free tier)')
+                        .addOption('gemini-1.5-flash', 'Gemini 1.5 Flash')
                         .addOption('gemini-1.5-pro', 'Gemini 1.5 Pro')
+                        .addOption('gemini-2.5-pro-exp-03-25', 'Gemini 2.5 Pro (Experimental)')
                         .setValue(this.plugin.settings.ocrModel)
                         .onChange(async (value) => {
                             this.plugin.settings.ocrModel = value;
@@ -386,6 +389,193 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
     }
 }
 
+class OcrPickerModal extends Modal {
+    constructor(app, files, onPick) {
+        super(app);
+        this.files = files;
+        this.onPick = onPick;
+        this.filterText = '';
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.createEl('h2', { text: 'OCR: Pick attachment to process' });
+        contentEl.createEl('p', { text: `${this.files.length} OCR-compatible file${this.files.length !== 1 ? 's' : ''} found in vault.`, cls: 'ao-purge-desc' });
+
+        const input = contentEl.createEl('input', { type: 'text', placeholder: 'Filter by filename or path...' });
+        input.style.cssText = 'width:100%;margin-bottom:10px;padding:6px 10px;border-radius:6px;border:1px solid var(--background-modifier-border);background:var(--background-primary);color:var(--text-normal);';
+        input.addEventListener('input', () => {
+            this.filterText = input.value.trim().toLowerCase();
+            this.renderList(listEl);
+        });
+
+        const listEl = contentEl.createDiv({ cls: 'ao-purge-list' });
+        this.renderList(listEl);
+
+        const btnRow = contentEl.createDiv({ cls: 'ao-purge-btn-row' });
+        const cancelBtn = btnRow.createEl('button', { text: 'Cancel' });
+        cancelBtn.addEventListener('click', () => this.close());
+    }
+
+    renderList(listEl) {
+        listEl.empty();
+        const filtered = this.filterText
+            ? this.files.filter(f => f.path.toLowerCase().includes(this.filterText) || f.name.toLowerCase().includes(this.filterText))
+            : this.files;
+
+        if (filtered.length === 0) {
+            listEl.createEl('p', { text: 'No matching files.', cls: 'ao-purge-desc' });
+            return;
+        }
+
+        for (const file of filtered) {
+            const row = listEl.createDiv({ cls: 'ao-purge-row' });
+            row.style.cursor = 'pointer';
+            const info = row.createDiv({ cls: 'ao-purge-label' });
+            info.createEl('span', { text: file.name, cls: 'ao-purge-name' });
+            info.createEl('span', { text: file.path, cls: 'ao-purge-path' });
+            row.addEventListener('click', () => {
+                this.close();
+                this.onPick(file);
+            });
+            row.addEventListener('mouseenter', () => row.style.background = 'var(--background-modifier-hover)');
+            row.addEventListener('mouseleave', () => row.style.background = '');
+        }
+    }
+
+    onClose() {
+        this.contentEl.empty();
+    }
+}
+
+class PurgeUnlinkedModal extends Modal {
+    constructor(app, unlinkedFiles, onConfirm) {
+        super(app);
+        this.unlinkedFiles = unlinkedFiles;
+        this.onConfirm = onConfirm;
+        this.selected = new Set(unlinkedFiles.map(f => f.path));
+        this.confirmStep = false;
+    }
+
+    onOpen() {
+        this.render();
+    }
+
+    render() {
+        const { contentEl } = this;
+        contentEl.empty();
+
+        if (this.confirmStep) {
+            this.renderConfirmStep();
+        } else {
+            this.renderSelectStep();
+        }
+    }
+
+    renderSelectStep() {
+        const { contentEl } = this;
+
+        contentEl.createEl('h2', { text: 'Purge Unlinked Attachments' });
+        contentEl.createEl('p', {
+            text: `Found ${this.unlinkedFiles.length} unlinked attachment${this.unlinkedFiles.length !== 1 ? 's' : ''}. Select which ones to delete.`,
+            cls: 'ao-purge-desc'
+        });
+
+        // Select all / none buttons
+        const bulkRow = contentEl.createDiv({ cls: 'ao-purge-bulk-row' });
+        const selectAllBtn = bulkRow.createEl('button', { text: 'Select All' });
+        selectAllBtn.addEventListener('click', () => {
+            this.selected = new Set(this.unlinkedFiles.map(f => f.path));
+            this.render();
+        });
+        const selectNoneBtn = bulkRow.createEl('button', { text: 'Select None' });
+        selectNoneBtn.addEventListener('click', () => {
+            this.selected = new Set();
+            this.render();
+        });
+
+        const countEl = bulkRow.createSpan({ cls: 'ao-purge-count' });
+        countEl.setText(`${this.selected.size} of ${this.unlinkedFiles.length} selected`);
+
+        // File list with checkboxes
+        const listEl = contentEl.createDiv({ cls: 'ao-purge-list' });
+        for (const file of this.unlinkedFiles) {
+            const row = listEl.createDiv({ cls: 'ao-purge-row' });
+            const checkbox = row.createEl('input', { type: 'checkbox' });
+            checkbox.checked = this.selected.has(file.path);
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    this.selected.add(file.path);
+                } else {
+                    this.selected.delete(file.path);
+                }
+                countEl.setText(`${this.selected.size} of ${this.unlinkedFiles.length} selected`);
+            });
+            const label = row.createEl('label', { cls: 'ao-purge-label' });
+            label.createEl('span', { text: file.name, cls: 'ao-purge-name' });
+            label.createEl('span', { text: file.path, cls: 'ao-purge-path' });
+            label.prepend(checkbox);
+        }
+
+        // Action buttons
+        const btnRow = contentEl.createDiv({ cls: 'ao-purge-btn-row' });
+
+        const cancelBtn = btnRow.createEl('button', { text: 'Cancel' });
+        cancelBtn.addEventListener('click', () => this.close());
+
+        const deleteBtn = btnRow.createEl('button', { text: 'Delete Selected', cls: 'mod-warning' });
+        deleteBtn.addEventListener('click', () => {
+            if (this.selected.size === 0) {
+                new Notice('No files selected.');
+                return;
+            }
+            this.confirmStep = true;
+            this.render();
+        });
+    }
+
+    renderConfirmStep() {
+        const { contentEl } = this;
+        const filesToDelete = this.unlinkedFiles.filter(f => this.selected.has(f.path));
+
+        contentEl.createEl('h2', { text: 'Confirm Deletion' });
+        contentEl.createEl('p', {
+            text: `You are about to permanently delete ${filesToDelete.length} file${filesToDelete.length !== 1 ? 's' : ''}. This cannot be undone.`,
+            cls: 'ao-purge-warning'
+        });
+
+        const listEl = contentEl.createDiv({ cls: 'ao-purge-list ao-purge-confirm-list' });
+        for (const file of filesToDelete) {
+            const row = listEl.createDiv({ cls: 'ao-purge-row' });
+            row.createEl('span', { text: '🗑 ', cls: 'ao-purge-icon' });
+            const info = row.createDiv({ cls: 'ao-purge-label' });
+            info.createEl('span', { text: file.name, cls: 'ao-purge-name' });
+            info.createEl('span', { text: file.path, cls: 'ao-purge-path' });
+        }
+
+        const btnRow = contentEl.createDiv({ cls: 'ao-purge-btn-row' });
+
+        const backBtn = btnRow.createEl('button', { text: '← Back' });
+        backBtn.addEventListener('click', () => {
+            this.confirmStep = false;
+            this.render();
+        });
+
+        const cancelBtn = btnRow.createEl('button', { text: 'Cancel' });
+        cancelBtn.addEventListener('click', () => this.close());
+
+        const confirmBtn = btnRow.createEl('button', { text: `Delete ${filesToDelete.length} file${filesToDelete.length !== 1 ? 's' : ''}`, cls: 'mod-warning' });
+        confirmBtn.addEventListener('click', async () => {
+            this.close();
+            await this.onConfirm(filesToDelete);
+        });
+    }
+
+    onClose() {
+        this.contentEl.empty();
+    }
+}
+
 module.exports = class AttachmentOrganizer extends Plugin {
     async onload() {
         console.log('Loading Attachment Organizer plugin');
@@ -459,6 +649,12 @@ module.exports = class AttachmentOrganizer extends Plugin {
             id: 'ocr-stop-processing',
             name: 'OCR: Stop processing',
             callback: () => this.stopOcrProcessing()
+        });
+
+        this.addCommand({
+            id: 'ocr-pick-attachment',
+            name: 'OCR: Pick attachment to process',
+            callback: () => this.ocrPickAttachment()
         });
 
     }
@@ -575,52 +771,95 @@ module.exports = class AttachmentOrganizer extends Plugin {
         }
     }
 
-    async purgeUnlinkedAttachments() {
-        if (!this.settings.confirmPurge) {
-            new Notice('Purge confirmation is disabled in settings');
-            return;
-        }
-
-        // This would need a proper confirmation dialog in a real implementation
-        const confirmed = confirm('Are you sure you want to delete all unlinked attachments? This cannot be undone.');
-        if (!confirmed) {
-            return;
-        }
-
+    async getUnlinkedAttachments() {
         const files = this.app.vault.getFiles();
         const attachmentExtensions = this.settings.attachmentExtensions.split(',').map(ext => ext.trim().toLowerCase());
         const attachments = files.filter(file => attachmentExtensions.includes(file.extension?.toLowerCase()));
-        
+
+        const ignoreFolders = this.settings.ignoreFolders.split(',').map(f => f.trim()).filter(f => f);
+
         const linkedAttachments = new Set();
         const markdownFiles = files.filter(file => file.extension === 'md');
 
         for (const mdFile of markdownFiles) {
-            const content = await this.app.vault.read(mdFile);
-            const linkRegex = /\[\[([^\]]+)\]\]|!\[\[([^\]]+)\]\]/g;
-            let match;
-            
-            while ((match = linkRegex.exec(content)) !== null) {
-                const linkedFile = match[1] || match[2];
-                const resolvedFile = this.app.metadataCache.getFirstLinkpathDest(linkedFile, mdFile.path);
-                if (resolvedFile) {
-                    linkedAttachments.add(resolvedFile.path);
+            const resolvedLinks = this.app.metadataCache.resolvedLinks[mdFile.path] || {};
+            for (const destPath of Object.keys(resolvedLinks)) {
+                linkedAttachments.add(destPath);
+            }
+        }
+
+        return attachments.filter(file => {
+            if (linkedAttachments.has(file.path)) return false;
+            if (ignoreFolders.some(folder => file.path.startsWith(folder + '/'))) return false;
+            return true;
+        });
+    }
+
+    async purgeUnlinkedAttachments() {
+        new Notice('Scanning for unlinked attachments...');
+        const unlinked = await this.getUnlinkedAttachments();
+
+        if (unlinked.length === 0) {
+            new Notice('No unlinked attachments found.');
+            return;
+        }
+
+        new PurgeUnlinkedModal(this.app, unlinked, async (filesToDelete) => {
+            let deleted = 0;
+            let failed = 0;
+            for (const file of filesToDelete) {
+                try {
+                    await this.app.vault.trash(file, true);
+                    deleted++;
+                } catch (error) {
+                    console.error(`Failed to delete ${file.path}:`, error);
+                    failed++;
                 }
             }
-        }
+            let msg = `Deleted ${deleted} unlinked attachment${deleted !== 1 ? 's' : ''}.`;
+            if (failed > 0) msg += ` ${failed} failed — check console.`;
+            new Notice(msg);
+        }).open();
+    }
 
-        const unlinkedAttachments = attachments.filter(file => !linkedAttachments.has(file.path));
-        
-        let deleted = 0;
-        for (const file of unlinkedAttachments) {
+    async ocrPickAttachment() {
+        if (!this.settings.ocrEnabled || !this.settings.ocrApiKey) {
+            new Notice('OCR is not enabled or API key is missing. Check settings.');
+            return;
+        }
+        const targets = this.app.vault.getFiles().filter(f => this.isOcrTarget(f));
+        if (targets.length === 0) {
+            new Notice('No OCR-compatible files found in vault (images/PDFs).');
+            return;
+        }
+        new OcrPickerModal(this.app, targets, async (file) => {
+            new Notice(`Starting OCR for ${file.name}...`);
             try {
-                await this.app.vault.delete(file);
-                deleted++;
+                const ocrPath = this.getOcrNotePath(file, this.settings.ocrOutputFolder);
+                const alreadyExists = await this.app.vault.adapter.exists(ocrPath);
+                if (alreadyExists && !this.settings.ocrForceReprocess) {
+                    new Notice(`OCR note already exists for ${file.name}. Enable "Force reprocess" in settings to overwrite.`);
+                    return;
+                }
+                if (this.settings.ocrOutputFolder) {
+                    await this.ensureFolderExists(this.settings.ocrOutputFolder);
+                }
+                const fileBuffer = await this.app.vault.readBinary(file);
+                const mimeType = this.getMimeType(file.extension);
+                const extractedText = await this.callGeminiOCR(fileBuffer, mimeType);
+                const noteContent = this.buildOcrNote(file, extractedText, 'completed');
+                if (alreadyExists) {
+                    const existing = this.app.vault.getAbstractFileByPath(ocrPath);
+                    await this.app.vault.modify(existing, noteContent);
+                } else {
+                    await this.app.vault.create(ocrPath, noteContent);
+                }
+                new Notice(`OCR complete for ${file.name}`);
             } catch (error) {
-                console.error(`Failed to delete ${file.path}:`, error);
+                console.error('OCR pick error:', error);
+                new Notice(`OCR failed for ${file.name}: ${error.message}`);
             }
-        }
-
-        new Notice(`Deleted ${deleted} unlinked attachments`);
+        }).open();
     }
 
     async moveAttachmentsBetweenFolders() {

@@ -21,7 +21,7 @@ A comprehensive plugin that helps you organize, manage, and clean up attachments
 
 ### 🧹 Attachment Cleanup
 - **Find Unlinked Attachments**: Identify files not linked from any note
-- **Purge Unlinked Attachments**: Delete unlinked attachments safely, with confirmation
+- **Purge Unlinked Attachments**: Delete unlinked attachments safely — select all, none, or individual files via checkboxes, then confirm before anything is deleted
 - **Clean Empty Folders**: Automatically delete empty folders after purging (optional)
 
 ### 🔍 OCR (Optical Character Recognition)
@@ -65,8 +65,12 @@ You'll soon be able to find it directly in the Community Plugins browser.
 
 ### 🗑 Purging Unlinked Attachments
 
-1. Run "Purge Unlinked Attachments"
-2. Review and confirm the list of files to be deleted
+1. Run "Purge Unlinked Attachments" from the Command Palette
+2. A modal opens listing all unlinked attachments with checkboxes (all selected by default)
+3. Use **Select All** / **Select None** to bulk-toggle, or check/uncheck individual files
+4. Click **Delete Selected** to proceed to a confirmation step
+5. Review the final list and click **Delete** to permanently remove the files, or **← Back** to revise your selection
+6. Click **Cancel** at any point to abort without deleting anything
 
 ### 🚚 Moving Attachments
 

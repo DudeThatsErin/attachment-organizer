@@ -1,7 +1,7 @@
 {
     "id": "attachment-organizer",
     "name": "Attachment Organizer",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "minAppVersion": "0.15.0",
     "description": "Organize and manage attachments, including finding and purging unlinked files.",
     "author": "Erin Skidds",

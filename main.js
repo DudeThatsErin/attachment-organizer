@@ -9,6 +9,8 @@ const DEFAULT_SETTINGS = {
     ignoreFolders: '',
     autoOrganizeMode: 'date', // 'none', 'date', 'type', 'tag', 'custom'
     customPattern: '{{type}}/{{year}}-{{month}}',
+    organizeOnLoad: false,
+    organizeInterval: 0, // minutes, 0 = disabled
     // OCR Settings
     ocrEnabled: false,
     ocrApiKey: '',
@@ -106,8 +108,8 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                     }));
 
             new Setting(containerEl)
-                .setName('Show notifications')
-                .setDesc('Show notifications before deleting unlinked attachments')
+                .setName('Confirm before purging')
+                .setDesc('Show confirmation prompt before deleting unlinked attachments')
                 .addToggle(toggle => toggle
                     .setValue(this.plugin.settings.confirmPurge)
                     .onChange(async (value) => {
@@ -118,7 +120,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
         });
 
         // Organization settings
-        this.createAccordionSection(containerEl, 'Organization settings', () => {
+        this.createAccordionSection(containerEl, 'Organization Settings', () => {
             new Setting(containerEl)
                 .setName('Auto-organize mode')
                 .setDesc('How attachments should be organized')
@@ -146,6 +148,29 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                             await this.plugin.saveSettings();
                         }));
             }
+
+            new Setting(containerEl)
+                .setName('Organize on load')
+                .setDesc('Automatically organize attachments when Obsidian starts')
+                .addToggle(toggle => toggle
+                    .setValue(this.plugin.settings.organizeOnLoad)
+                    .onChange(async (value) => {
+                        this.plugin.settings.organizeOnLoad = value;
+                        await this.plugin.saveSettings();
+                    }));
+
+            new Setting(containerEl)
+                .setName('Auto-organize interval (minutes)')
+                .setDesc('Automatically re-organize on a schedule. Set to 0 to disable.')
+                .addSlider(slider => slider
+                    .setLimits(0, 120, 5)
+                    .setValue(this.plugin.settings.organizeInterval)
+                    .setDynamicTooltip()
+                    .onChange(async (value) => {
+                        this.plugin.settings.organizeInterval = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.resetOrganizeInterval();
+                    }));
         });
 
         // OCR Settings
@@ -593,6 +618,14 @@ module.exports = class AttachmentOrganizer extends Plugin {
         // Set up file watchers for automatic OCR processing with recursion prevention
         this.setupFileWatchers();
 
+        // Auto-organize on load
+        if (this.settings.organizeOnLoad) {
+            this.app.workspace.onLayoutReady(() => this.organizeAttachments());
+        }
+
+        // Auto-organize on interval
+        this.resetOrganizeInterval();
+
         this.addCommand({
             id: 'organize-attachments',
             name: 'Organize attachments',
@@ -659,8 +692,21 @@ module.exports = class AttachmentOrganizer extends Plugin {
 
     }
 
+    resetOrganizeInterval() {
+        if (this._organizeIntervalId) {
+            clearInterval(this._organizeIntervalId);
+            this._organizeIntervalId = null;
+        }
+        if (this.settings.organizeInterval > 0) {
+            const ms = this.settings.organizeInterval * 60 * 1000;
+            this._organizeIntervalId = setInterval(() => this.organizeAttachments(), ms);
+        }
+    }
+
     onunload() {
-        // Clean up any remaining resources
+        if (this._organizeIntervalId) {
+            clearInterval(this._organizeIntervalId);
+        }
     }
 
     async organizeAttachments() {

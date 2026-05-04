@@ -1,16 +1,26 @@
 # Attachment Organizer for Obsidian
 
-> *Note:* This plugin is being vibe coded. So, if you are not wanting AI code in your vault, please do not use this plugin. Though I am a full time Full Stack Developer so I can validate none of the code is leaking secrets or collecting personal data if that helps you.
+> *Note 1:* This plugin is being vibe coded. So, if you are not wanting AI code in your vault, please do not use this plugin. Though I am a full time Full Stack Developer so I can validate none of the code is leaking secrets or collecting personal data if that helps you.
 
-A comprehensive plugin that helps you organize, manage, and clean up attachments — plus extract text from images and PDFs using OCR — all within your Obsidian vault.
+> *Note 2:* I am making this plugin for myself. While I accept feature requests, I may not complete them as this plugin is for me, I offer it to anyone in case your brain works like mine. I do not guarantee any support or updates.
+
+A comprehensive plugin that helps you organize, manage, and clean up attachments — rename pasted files automatically — plus extract text from images and PDFs using OCR — all within your Obsidian vault.
 
 ## 🚀 Features
 
 ### 📁 Attachment Organization
-- **Flexible destination**: Move attachments using Obsidian's built-in attachment folder setting (files stay relative to their note), or always prompt for a specific folder name each time you organize
-- **Subfolder sorting**: Optionally sort attachments into subfolders by date, file type, or a custom pattern using tokens like `{{year}}`, `{{month}}`, `{{day}}`, `{{type}}`, `{{filename}}`
+- **Flexible destination**: Move attachments using Obsidian's built-in setting, same folder as the linking note, or a separate named folder
+- **Subfolder sorting**: Sort into subfolders by date, file type, or a custom pattern using tokens like `{{year}}`, `{{month}}`, `{{day}}`, `{{type}}`, `{{filename}}`
 - **Configurable extensions**: Define exactly which file types count as attachments
 - **Ignore rules**: Skip specified folders during organizing or purging
+- **Empty folder cleanup**: Folders left empty after organizing are automatically deleted
+- **Auto-organize**: Run on startup and/or on a repeating interval
+
+### ✏️ Paste Rename
+- Automatically rename files when pasted or dropped into a note
+- **Five modes**: do nothing, date-based, custom pattern, ask each time, or date pre-filled + ask to confirm
+- **Tokens**: `{{year}}`, `{{month}}`, `{{day}}`, `{{time}}`, `{{type}}`, `{{filename}}` (active note name), `{{original}}` (pasted file's original name)
+- Embed links in the note are updated automatically to match the new filename
 
 ### 🧹 Attachment Cleanup
 - **Find Unlinked Attachments**: Identify attachment files not linked from any note
@@ -42,10 +52,22 @@ A comprehensive plugin that helps you organize, manage, and clean up attachments
 
 1. Open **Settings > Attachment Organizer > Organization Settings**
 2. Set your **Destination**:
-   - *Use Obsidian default* — respects your vault's "Default location for new attachments" setting
-   - *Separate folder* — prompts you for a folder name every time you organize (the last-used name is pre-filled)
+   - *Use Obsidian settings* — respects your vault's "Default location for new attachments" setting
+   - *Same location as file* — moves attachments to the same folder as the note that links to them
+   - *Separate folder* — uses a configured folder name (e.g. `attachments`)
 3. Optionally choose **Sort into subfolders by** (none, date, file type, or custom pattern)
 4. Run **"Organize attachments"** from the Command Palette (`Ctrl/Cmd+P`)
+
+### ✏️ Paste Rename
+
+1. Open **Settings > Attachment Organizer > Paste Rename Settings**
+2. Choose a **Rename mode**:
+   - *Do not rename* — default, no change
+   - *Date-based* — auto-rename using a date pattern (e.g. `2026-05-04.png`)
+   - *Custom pattern* — auto-rename using any token combination
+   - *Ask each time* — a prompt appears after each paste so you can type the name
+   - *Date-based + ask to confirm* — prompt pre-filled with the date pattern
+3. Configure the pattern using tokens: `{{year}}`, `{{month}}`, `{{day}}`, `{{time}}`, `{{type}}`, `{{filename}}` (note name), `{{original}}` (pasted file's original name)
 
 ### 🗑 Purging Unlinked Attachments
 
@@ -55,7 +77,7 @@ A comprehensive plugin that helps you organize, manage, and clean up attachments
 4. Click **Delete Selected** → review the confirmation list → click **Delete** to permanently remove, or **← Back** to revise
 5. Click **Cancel** at any point to abort
 
-### � Using OCR
+### 🔍 Using OCR
 
 #### Setup
 1. Open **Settings > Attachment Organizer > OCR Settings**
@@ -102,12 +124,31 @@ Images: PNG, JPG, JPEG, WEBP, BMP, GIF, HEIC, HEIF — Documents: PDF
 ### Organization Settings
 | Setting | Description |
 |---|---|
-| Destination | *Obsidian default* (note-relative) or *Separate folder* (prompted each run) |
-| Default folder name | Pre-filled folder name shown in the prompt (separate folder mode only) |
+| Destination | *Obsidian settings*, *Same location as file*, or *Separate folder* |
+| Default folder name | Folder name used in separate folder mode |
 | Sort into subfolders by | None, Date (year/month), File type, or Custom pattern |
 | Custom subfolder pattern | Tokens: `{{year}}`, `{{month}}`, `{{day}}`, `{{type}}`, `{{filename}}` |
 | Organize on startup | Auto-organize every time Obsidian starts |
 | Auto-organize interval | Re-organize on a timer (minutes, 0 = disabled) |
+
+### Paste Rename Settings
+| Setting | Description |
+|---|---|
+| Rename mode | None, Date-based, Custom pattern, Ask each time, or Date + ask |
+| Date format pattern | Pattern used for date-based and date+ask modes |
+| Custom rename pattern | Pattern used for custom mode |
+
+Available tokens for paste rename patterns:
+
+| Token | Value |
+|---|---|
+| `{{year}}` | 4-digit year |
+| `{{month}}` | 2-digit month |
+| `{{day}}` | 2-digit day |
+| `{{time}}` | `HHmmss` timestamp |
+| `{{type}}` | File extension (e.g. `png`) |
+| `{{filename}}` | Name of the active note |
+| `{{original}}` | Original pasted filename (without extension) |
 
 ### Purge Settings
 | Setting | Description |
@@ -142,5 +183,3 @@ Customize the prompt sent to Gemini and the output note template. Available temp
 - 🐛 [Report Issues](https://github.com/DudeThatsErin/AttachmentOrganizer/issues)
 - ⭐ [Star on GitHub](https://github.com/DudeThatsErin/AttachmentOrganizer)
 - ☕ [Buy Me a Coffee](https://buymeacoffee.com/erinskidds)
-
-

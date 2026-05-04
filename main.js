@@ -1,6 +1,6 @@
 // === Attachment Organizer Plugin ===
 
-const { Plugin, Notice, Modal, Setting, PluginSettingTab, TFile, TFolder } = require('obsidian');
+const { Plugin, Notice, Modal, Setting, PluginSettingTab, TFile, TFolder, MarkdownView } = require('obsidian');
 
 const DEFAULT_SETTINGS = {
     attachmentFolder: 'attachments',
@@ -28,6 +28,10 @@ const DEFAULT_SETTINGS = {
     ocrBatchSize: 1,
     ocrMaxFileSize: 10485760, // 10MB in bytes
     ocrForceReprocess: false,
+    // Paste Rename Settings
+    pasteRenameMode: 'none', // 'none', 'date', 'custom', 'ask', 'date-ask'
+    pasteRenameDateFormat: '{{year}}-{{month}}-{{day}}', // tokens: {{year}} {{month}} {{day}} {{time}} {{type}}
+    pasteRenameCustomPattern: '{{year}}-{{month}}-{{day}}_{{filename}}',
 };
 
 class AttachmentOrganizerSettingTab extends PluginSettingTab {
@@ -79,7 +83,7 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
             new Setting(el)
                 .setName('Attachment extensions')
                 .setDesc('Comma-separated list of file extensions treated as attachments')
-                .addText(text => text
+                .addTextArea(text => text
                     .setPlaceholder('png,jpg,jpeg,...')
                     .setValue(this.plugin.settings.attachmentExtensions)
                     .onChange(async (value) => {
@@ -178,6 +182,56 @@ class AttachmentOrganizerSettingTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                         this.plugin.resetOrganizeInterval();
                     }));
+        });
+
+        // Paste Rename Settings
+        this.createAccordionSection(containerEl, 'Paste Rename Settings', (el) => {
+            el.createEl('p', {
+                text: 'Automatically rename files when they are pasted or dropped into Obsidian.',
+                cls: 'setting-item-description'
+            });
+
+            new Setting(el)
+                .setName('Rename mode')
+                .setDesc('How to rename attachments when pasted or dropped into a note')
+                .addDropdown(drop => drop
+                    .addOption('none', 'Do not rename')
+                    .addOption('date', 'Date-based (automatic)')
+                    .addOption('custom', 'Custom pattern (automatic)')
+                    .addOption('ask', 'Ask each time')
+                    .addOption('date-ask', 'Date-based + ask to confirm')
+                    .setValue(this.plugin.settings.pasteRenameMode)
+                    .onChange(async (value) => {
+                        this.plugin.settings.pasteRenameMode = value;
+                        await this.plugin.saveSettings();
+                        this.display();
+                    }));
+
+            if (this.plugin.settings.pasteRenameMode === 'date' || this.plugin.settings.pasteRenameMode === 'date-ask') {
+                new Setting(el)
+                    .setName('Date format pattern')
+                    .setDesc('Tokens: {{year}}, {{month}}, {{day}}, {{time}}, {{type}}, {{filename}} (note name), {{original}} (pasted file name)')
+                    .addText(text => text
+                        .setPlaceholder('{{year}}-{{month}}-{{day}}')
+                        .setValue(this.plugin.settings.pasteRenameDateFormat)
+                        .onChange(async (value) => {
+                            this.plugin.settings.pasteRenameDateFormat = value.trim() || '{{year}}-{{month}}-{{day}}';
+                            await this.plugin.saveSettings();
+                        }));
+            }
+
+            if (this.plugin.settings.pasteRenameMode === 'custom') {
+                new Setting(el)
+                    .setName('Custom rename pattern')
+                    .setDesc('Tokens: {{year}}, {{month}}, {{day}}, {{time}}, {{type}}, {{filename}} (note name), {{original}} (pasted file name)')
+                    .addText(text => text
+                        .setPlaceholder('{{year}}-{{month}}-{{day}}_{{filename}}')
+                        .setValue(this.plugin.settings.pasteRenameCustomPattern)
+                        .onChange(async (value) => {
+                            this.plugin.settings.pasteRenameCustomPattern = value.trim() || '{{year}}-{{month}}-{{day}}_{{filename}}';
+                            await this.plugin.saveSettings();
+                        }));
+            }
         });
 
         // Purge Settings
@@ -615,6 +669,64 @@ class PurgeUnlinkedModal extends Modal {
     }
 }
 
+class PasteRenameModal extends Modal {
+    constructor(app, file, suggestedName, onRename) {
+        super(app);
+        this.file = file;
+        this.suggestedName = suggestedName;
+        this.onRename = onRename;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.createEl('h3', { text: 'Rename pasted file' });
+
+        const originalExt = this.file.extension ? `.${this.file.extension}` : '';
+        const baseName = this.suggestedName.replace(/\.[^.]+$/, '');
+
+        contentEl.createEl('p', {
+            text: `Original: ${this.file.name}`,
+            cls: 'setting-item-description'
+        });
+
+        const inputRow = contentEl.createDiv({ cls: 'ao-rename-row' });
+        const input = inputRow.createEl('input', { type: 'text', cls: 'ao-rename-input' });
+        input.value = baseName;
+        inputRow.createEl('span', { text: originalExt, cls: 'ao-rename-ext' });
+
+        const btnRow = contentEl.createDiv({ cls: 'ao-purge-btn-row' });
+
+        const cancelBtn = btnRow.createEl('button', { text: 'Keep original' });
+        cancelBtn.addEventListener('click', () => {
+            this.onRename(null);
+            this.close();
+        });
+
+        const renameBtn = btnRow.createEl('button', { text: 'Rename', cls: 'mod-cta' });
+        renameBtn.addEventListener('click', () => {
+            const val = input.value.trim();
+            if (val) {
+                this.onRename(val + originalExt);
+            } else {
+                this.onRename(null);
+            }
+            this.close();
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') renameBtn.click();
+            if (e.key === 'Escape') cancelBtn.click();
+        });
+
+        setTimeout(() => { input.focus(); input.select(); }, 50);
+    }
+
+    onClose() {
+        this.contentEl.empty();
+    }
+}
+
 module.exports = class AttachmentOrganizer extends Plugin {
     async onload() {
         console.log('Loading Attachment Organizer plugin');
@@ -631,6 +743,15 @@ module.exports = class AttachmentOrganizer extends Plugin {
 
         // Set up file watchers for automatic OCR processing with recursion prevention
         this.setupFileWatchers();
+
+        // Paste rename watcher
+        this.registerEvent(
+            this.app.vault.on('create', (file) => {
+                if (file instanceof TFile) {
+                    this.handlePastedFile(file);
+                }
+            })
+        );
 
         // Auto-organize on load
         if (this.settings.organizeOnLoad) {
@@ -706,6 +827,108 @@ module.exports = class AttachmentOrganizer extends Plugin {
 
     }
 
+    applyPasteRenamePattern(pattern, file) {
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const activeNote = this.app.workspace.getActiveFile();
+        const tokens = {
+            '{{year}}': now.getFullYear().toString(),
+            '{{month}}': pad(now.getMonth() + 1),
+            '{{day}}': pad(now.getDate()),
+            '{{time}}': `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`,
+            '{{type}}': file.extension?.toLowerCase() || 'file',
+            '{{filename}}': activeNote?.basename || file.basename,
+            '{{note}}': activeNote?.basename || file.basename,
+            '{{original}}': file.basename,
+        };
+        let result = pattern;
+        for (const [token, value] of Object.entries(tokens)) {
+            result = result.replace(new RegExp(token.replace(/[{}]/g, '\\$&'), 'g'), value);
+        }
+        // Sanitize: remove characters not allowed in filenames
+        return result.replace(/[\\/:*?"<>|]/g, '_');
+    }
+
+    async handlePastedFile(file) {
+        const mode = this.settings.pasteRenameMode;
+        if (mode === 'none') return;
+
+        const attachmentExtensions = this.settings.attachmentExtensions
+            .split(',').map(e => e.trim().toLowerCase());
+        if (!attachmentExtensions.includes(file.extension?.toLowerCase())) return;
+
+        // Debounce: skip if already being renamed
+        if (this._renamingFiles?.has(file.path)) return;
+        if (!this._renamingFiles) this._renamingFiles = new Set();
+        this._renamingFiles.add(file.path);
+
+        // Delay to ensure Obsidian's metadata cache has indexed the file
+        // before renameFile attempts to update backlinks in notes.
+        await new Promise(r => setTimeout(r, 1000));
+
+        // Re-check file still exists using fresh vault reference
+        const current = this.app.vault.getAbstractFileByPath(file.path);
+        if (!(current instanceof TFile)) {
+            this._renamingFiles.delete(file.path);
+            return;
+        }
+
+        const ext = current.extension ? `.${current.extension}` : '';
+        // Prefer the active note's folder as destination so the renamed file
+        // lands next to the note it was pasted into, not at vault root.
+        const activeNote = this.app.workspace.getActiveFile();
+        const noteFolder = activeNote?.parent?.path && activeNote.parent.path !== '/'
+            ? activeNote.parent.path : '';
+        const parentPath = current.parent?.path && current.parent.path !== '/'
+            ? current.parent.path
+            : noteFolder;
+
+        const doRename = async (newName) => {
+            if (!newName) { this._renamingFiles.delete(current.path); return; }
+            const newPath = parentPath ? `${parentPath}/${newName}` : newName;
+            if (newPath === current.path) { this._renamingFiles.delete(current.path); return; }
+            const oldName = current.name;
+            try {
+                await this.app.fileManager.renameFile(current, newPath);
+                // Manually patch the active editor — renameFile may not update
+                // the link if the embed was just inserted and cache isn't ready.
+                const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+                if (activeView?.editor) {
+                    const editor = activeView.editor;
+                    const before = editor.getValue();
+                    const after = before.split(oldName).join(newName);
+                    if (after !== before) {
+                        const cursor = editor.getCursor();
+                        editor.setValue(after);
+                        editor.setCursor(cursor);
+                    }
+                }
+            } catch (e) {
+                new Notice(`Rename failed: ${e.message}`);
+            }
+            this._renamingFiles.delete(current.path);
+        };
+
+        if (mode === 'date') {
+            const newName = this.applyPasteRenamePattern(this.settings.pasteRenameDateFormat, current) + ext;
+            await doRename(newName);
+        } else if (mode === 'custom') {
+            const newName = this.applyPasteRenamePattern(this.settings.pasteRenameCustomPattern, current) + ext;
+            await doRename(newName);
+        } else if (mode === 'ask') {
+            new PasteRenameModal(this.app, current, current.name, async (newName) => {
+                await doRename(newName);
+            }).open();
+        } else if (mode === 'date-ask') {
+            const suggested = this.applyPasteRenamePattern(this.settings.pasteRenameDateFormat, current) + ext;
+            new PasteRenameModal(this.app, current, suggested, async (newName) => {
+                await doRename(newName);
+            }).open();
+        } else {
+            this._renamingFiles.delete(current.path);
+        }
+    }
+
     resetOrganizeInterval() {
         if (this._organizeIntervalId) {
             clearInterval(this._organizeIntervalId);
@@ -742,9 +965,14 @@ module.exports = class AttachmentOrganizer extends Plugin {
             try {
                 const newPath = this.getNewAttachmentPath(file, resolvedFolderName);
                 if (newPath !== file.path) {
+                    const oldFolder = file.parent?.path || '';
                     await this.ensureFolderExists(newPath.substring(0, newPath.lastIndexOf('/')));
                     await this.app.vault.rename(file, newPath);
                     organized++;
+                    // Remove old folder (and empty ancestors) if now empty
+                    if (oldFolder) {
+                        await this.deleteIfEmpty(oldFolder);
+                    }
                 }
             } catch (error) {
                 console.error(`Failed to organize ${file.path}:`, error);
@@ -771,8 +999,20 @@ module.exports = class AttachmentOrganizer extends Plugin {
                 baseFolder = cfgPath;
             }
         } else if (this.settings.organizationMode === 'same-location') {
-            // Place attachment in the same folder as the source file
-            baseFolder = file.parent?.path || '';
+            // Place attachment in the same folder as the note that links to it.
+            // Fall back to the attachment's own folder if no linking note is found.
+            const resolvedLinks = this.app.metadataCache.resolvedLinks;
+            let linkingNoteFolder = null;
+            for (const [notePath, links] of Object.entries(resolvedLinks)) {
+                if (links[file.path] !== undefined) {
+                    const noteFile = this.app.vault.getAbstractFileByPath(notePath);
+                    if (noteFile instanceof TFile && noteFile.parent?.path) {
+                        linkingNoteFolder = noteFile.parent.path;
+                        break;
+                    }
+                }
+            }
+            baseFolder = linkingNoteFolder ?? file.parent?.path ?? '';
         } else {
             // separate-folder: use the resolved (prompted) folder name
             baseFolder = resolvedFolderName || this.settings.separateFolderName || 'attachments';
@@ -811,13 +1051,8 @@ module.exports = class AttachmentOrganizer extends Plugin {
         const newPath = baseFolder ? `${baseFolder}/${file.name}` : file.name;
 
         // If the file is already in the correct location, skip the move.
-        // Check both exact folder match and whether the current parent already
-        // ends with the subfolder suffix (handles note-relative obsidian-settings paths).
         const currentFolder = file.parent?.path || '';
         if (currentFolder === baseFolder) {
-            return file.path;
-        }
-        if (subfolderSuffix && (currentFolder === subfolderSuffix || currentFolder.endsWith('/' + subfolderSuffix))) {
             return file.path;
         }
 
@@ -962,6 +1197,26 @@ module.exports = class AttachmentOrganizer extends Plugin {
 
     async saveSettings() {
         await this.saveData(this.settings);
+    }
+
+    async deleteIfEmpty(folderPath) {
+        if (!folderPath || folderPath === '/') return;
+        const folder = this.app.vault.getAbstractFileByPath(folderPath);
+        if (!(folder instanceof TFolder)) return;
+        // Check if folder has any children left
+        if (folder.children && folder.children.length > 0) return;
+        try {
+            await this.app.vault.delete(folder, true);
+            // Walk up and delete parent if also now empty
+            const parentPath = folderPath.includes('/')
+                ? folderPath.substring(0, folderPath.lastIndexOf('/'))
+                : '';
+            if (parentPath) {
+                await this.deleteIfEmpty(parentPath);
+            }
+        } catch (e) {
+            // Ignore errors (e.g. folder not actually empty on disk)
+        }
     }
 
     async ensureFolderExists(folder) {

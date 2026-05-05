@@ -857,6 +857,12 @@ module.exports = class AttachmentOrganizer extends Plugin {
             .split(',').map(e => e.trim().toLowerCase());
         if (!attachmentExtensions.includes(file.extension?.toLowerCase())) return;
 
+        // Skip files that already existed before this session started.
+        // Obsidian fires 'create' for all indexed files on startup; genuine
+        // pastes have a ctime within the last 10 seconds.
+        const ageMs = Date.now() - (file.stat?.ctime ?? 0);
+        if (ageMs > 10000) return;
+
         // Debounce: skip if already being renamed
         if (this._renamingFiles?.has(file.path)) return;
         if (!this._renamingFiles) this._renamingFiles = new Set();
